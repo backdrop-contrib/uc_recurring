@@ -32,6 +32,15 @@ function uc_recurring_menu() {
     'weight' => 5,
     'file' => 'uc_recurring.admin.inc',
   );
+  $items['user/%user/recurring-fees'] = array(
+    'title' => 'Recurring fees',
+    'description' => 'View current recurring fees.',
+    'page callback' => 'uc_recurring_user_fees',
+    'page arguments' => array(1),
+    'access callback' => 'uc_recurring_user_access',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+  );
   $items['user/%user/recurring/%/cancel'] = array(
     'title' => 'Cancel the recurring fee?',
     'description' => 'Cancel a recurring fee.',
@@ -91,8 +100,18 @@ function uc_recurring_menu() {
   return $items;
 }
 
-// Restrict access to recurring fee operations for users.
-function uc_recurring_user_access($account, $rfid) {
+/**
+ * Restrict access to recurring fee operations for users.
+ *
+ * @param $account
+ *   The user account being accessed
+ * @param $rfid
+ *   The id of the recurring fee being access, parsing NULL checks 
+ *     if we can access any recurring fees for the account  
+ * @return 
+ *   True if user has permission to access account
+ */
+function uc_recurring_user_access($account, $rfid = NULL) {
   global $user;
 
   // Let administrators do whatever they want.
@@ -100,22 +119,35 @@ function uc_recurring_user_access($account, $rfid) {
     return TRUE;
   }
 
-  // Users can only access forms for their own recurring fees through their own
-  // user account.
-  $fee_uid = db_result(db_query("SELECT uid FROM {uc_recurring_users} WHERE rfid = %d", $rfid));
-
-  if ($user->uid != $account->uid || $account->uid != $fee_uid) {
+  // return false if there are no recurring fees
+  $result = db_result(db_query("SELECT count(*) FROM {uc_recurring_users} WHERE uid = %d AND remaining_intervals > 0", $account->uid));
+  if ($result == 0) {
     return FALSE;
   }
 
-  return TRUE;
+  if ($rfid == NULL) {
+    if (user_access('view own recurring fees') && $user->uid == $account->uid) {
+      return TRUE;
+    }
+  } 
+  else {
+    // Users can only access forms for their own recurring fees through their own
+    // user account.
+    $fee_uid = db_result(db_query("SELECT uid FROM {uc_recurring_users} WHERE rfid = %d", $rfid));
+
+    if (user_access('view own recurring fees') && $user->uid == $account->uid && $account->uid == $fee_uid) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
 
 /**
  * Implementation of hook_perm().
  */
 function uc_recurring_perm() {
-  return array('administer recurring fees');
+  return array('administer recurring fees', 'view own recurring fees');
 }
 
 /**
@@ -266,31 +298,33 @@ function uc_recurring_cron() {
  */
 function uc_recurring_user($op, &$edit, &$account, $category = NULL) {
   global $user;
-
   switch ($op) {
     case 'view':
-      if ($user->uid && ($user->uid == $account->uid || user_access('view all orders'))) {
-        // Get a table of recurring fees associated with this user.
-        $table = uc_recurring_user_table($account->uid);
-
+      if ($user->uid && (($user->uid == $account->uid && user_access('view own recurring fees') && uc_recurring_user_access($account)) || user_access('administor recurring fees'))) {
         // If fees exist, display them in a table.
-        if (!empty($table)) {
+        //if (!empty($table)) {
           $account->content['recurring_fees'] = array(
             '#type' => 'user_profile_category',
             '#weight' => -3,
             '#title' => t('Recurring fees'),
             'table' => array(
               '#type' => 'user_profile_item',
-              '#value' => $table,
+              '#value' => l('Click here to view your recurring fees', 'user/'. $user->uid . '/recurring-fees'),
             ),
           );
-        }
+        //}
       }
 
       break;
   }
 }
 
+/**
+ * Display users recurrings fees
+ */
+function uc_recurring_user_fees($user) {
+  return theme('uc_recurring_user_table', $user->uid);
+}
 
 /*******************************************************************************
  * Ubercart Hooks
@@ -649,8 +683,20 @@ function uc_recurring_settings_form() {
   return $form;
 }
 
+/**
+ * Implements hook_theme() 
+ */
+function uc_recurring_theme() {
+  return array(
+    'uc_recurring_user_table' => array(
+      'arguments' => array($uid => NULL),
+    ),
+  );
+}
+
+
 // Displays a table for users to administer their recurring fees.
-function uc_recurring_user_table($uid) {
+function theme_uc_recurring_user_table($uid) {
   $rows = array();
   $output = '';
 
