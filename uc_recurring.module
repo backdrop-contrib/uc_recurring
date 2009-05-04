@@ -226,7 +226,12 @@ function uc_recurring_form_alter(&$form, &$form_state, $form_id) {
   }
 }
 
-// Submit function for the order view update form to process recurring fees.
+/**
+ * TODO: Investigate the use/need for this function - the only way to setup a recurring payment after 
+ * inital processing is if you have the clients payment details`
+ *
+ * Submit function for the order view update form to process recurring fees.
+ */
 function uc_recurring_order_view_update_form_submit($form, &$form_state) {
   if ($form_state['values']['process_fees']) {
     $order = uc_order_load($form_state['values']['order_id']);
@@ -235,6 +240,15 @@ function uc_recurring_order_view_update_form_submit($form, &$form_state) {
     if (count($fees)) {
       $pass = TRUE;
       foreach ($fees as $fee) {
+        // if the fee amount is -1 use the product selling price as the recurring fee amount
+        if ($fee->fee_amount == -1) {
+          foreach($arg1 as $product) {
+            if ($fee->nid == $product->nid) {
+              $fee->fee_amount == $product->price; 
+            }
+          }
+        }
+
         if (!uc_recurring_process($order, $fee)) {
           uc_order_comment_save($order->order_id, 0, t('The recurring fee for product @model failed.', array('@model' => $fee->model)), 'admin', $order->order_status);
           $pass = FALSE;
@@ -341,6 +355,15 @@ function uc_recurring_order($op, &$arg1, $arg2) {
         if (count($fees)) {
           $pass = TRUE;
           foreach ($fees as $fee) {
+            // if the fee amount is -1 use the product selling price as the recurring fee amount
+            if ($fee->fee_amount == -1) {
+              foreach($arg1 as $product) {
+                if ($fee->nid == $product->nid) {
+                  $fee->fee_amount == $product->price; 
+                }
+              }
+            }
+
             if (!uc_recurring_process($arg1, $fee)) {
               uc_order_comment_save($arg1->order_id, 0, t('The recurring fee for product @model failed.', array('@model' => $fee->model)), 'admin', $arg1->order_status);
               $pass = FALSE;
@@ -516,7 +539,27 @@ function uc_recurring_feature_form($form_state, $node, $feature) {
     '#default_value' => $fee['model'],
   );
 
-  $form['fee_amount'] = array(
+  $form['fee'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Recurring Fee Amount'),
+    '#collapsible' => FALSE,
+    '#description' => t('Specify the amount that is charged on each renewal date.'),
+  );
+
+  $form['fee']['fee_same_product'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Set the recurring fee amount to the same as selling price of the product at the time of purchase.'),
+    '#attributes' => array($fee['fee_amount'] == -1 ? 'checked' : ''),
+  );
+  if ($fee['fee_amount'] == -1) {
+    $fee['fee_amount'] = $node->sell_price;
+  }
+
+  $form['fee']['product_price'] = array(
+    '#type' => 'hidden',
+    '#value' => $node->sell_price,
+  );
+  $form['fee']['fee_amount'] = array(
     '#type' => 'textfield',
     '#title' => t('Recurring fee amount'),
     '#description' => t('Charge this amount each billing period.<br />The product price is still charged at checkout.'),
@@ -526,19 +569,25 @@ function uc_recurring_feature_form($form_state, $node, $feature) {
     '#field_suffix' => variable_get('uc_sign_after_amount', FALSE) ? variable_get('uc_currency_sign', '$') : '',
   );
 
-  $form['initial'] = array(
+  $form['interval'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Payment Interval Settings'),
+    '#collapsible' => FALSE,
+    '#description' => t('Remember the product price will be charged at the time of checkout. This section specifies when the recurring amount will be charged.'),
+  );
+  $form['interval']['initial'] = array(
     '#type' => 'fieldset',
     '#title' => t('Initial charge'),
     '#collapsible' => FALSE,
-    '#description' => t('Specify the time to wait to start charging the recurring fee after checkout. Remember the product price will be charged at the time of checkout.'),
+    '#description' => t('Specify the time to wait to start charging the recurring fee after checkout.'),
     '#attributes' => array('class' => 'interval-fieldset'),
   );
-  $form['initial']['initial_charge_value'] = array(
+  $form['interval']['initial']['initial_charge_value'] = array(
     '#type' => 'select',
     '#options' => drupal_map_assoc(uc_range(0, 52)),
     '#default_value' => $fee['initial_charge_value'],
   );
-  $form['initial']['initial_charge_unit'] = array(
+  $form['interval']['initial']['initial_charge_unit'] = array(
     '#type' => 'select',
     '#options' => array(
       'days' => t('day(s)'),
@@ -549,19 +598,19 @@ function uc_recurring_feature_form($form_state, $node, $feature) {
     '#default_value' => $fee['initial_charge_unit'],
   );
 
-  $form['regular'] = array(
+  $form['interval']['regular'] = array(
     '#type' => 'fieldset',
     '#title' => t('Regular interval'),
     '#collapsible' => FALSE,
     '#description' => t('Specify the length of the billing period for this fee.'),
     '#attributes' => array('class' => 'interval-fieldset'),
   );
-  $form['regular']['regular_interval_value'] = array(
+  $form['interval']['regular']['regular_interval_value'] = array(
     '#type' => 'select',
     '#options' => drupal_map_assoc(uc_range(1, 52)),
     '#default_value' => $fee['regular_interval_value'],
   );
-  $form['regular']['regular_interval_unit'] = array(
+  $form['interval']['regular']['regular_interval_unit'] = array(
     '#type' => 'select',
     '#options' => array(
       'days' => t('day(s)'),
@@ -596,6 +645,11 @@ function uc_recurring_feature_form_submit($form, &$form_state) {
     $pfid = $form_state['values']['pfid'];
   }
 
+  // we store an amount of -1 if we are setting the recurring fee equal to product price
+  if ($form_state['values']['fee_same_product']) {
+    $form_state['values']['fee_amount'] = -1;
+  }
+
   // Build the recurring fee's data array.
   $fee = array(
     'pfid' => $pfid,
@@ -613,7 +667,7 @@ function uc_recurring_feature_form_submit($form, &$form_state) {
 
   $args = array(
     '@product' => empty($fee['model']) ? t('this product') : t('product @model', array('@model' => $fee['model'])),
-    '!amount' => uc_price($fee['fee_amount'], $context),
+    '!amount' => $form_state['values']['fee_amount'] == -1 ? 'the same amount as the product selling price' : uc_price($fee['fee_amount'], $context),
     '!initial' => $fee['initial_charge'],
     '!regular' => $fee['regular_interval'],
     '!intervals' => t('!num times', array('!num' => $fee['number_intervals'] - 1)),
