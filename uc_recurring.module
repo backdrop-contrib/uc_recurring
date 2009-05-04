@@ -553,10 +553,14 @@ function uc_recurring_feature_form($form_state, $node, $feature) {
     '#description' => t('Specify the amount that is charged on each renewal date.'),
   );
 
+  $attributes = array();
+  if ($fee['fee_amount'] == -1) {
+    $attributes = array('checked' => 'checked');
+  }
   $form['fee']['fee_same_product'] = array(
     '#type' => 'checkbox',
     '#title' => t('Set the recurring fee amount to the same as selling price of the product at the time of purchase.'),
-    '#attributes' => array($fee['fee_amount'] == -1 ? 'checked' : ''),
+    '#attributes' => $attributes,
   );
   if ($fee['fee_amount'] == -1) {
     $fee['fee_amount'] = $node->sell_price;
