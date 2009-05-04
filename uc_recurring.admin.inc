@@ -43,7 +43,7 @@ function uc_recurring_admin() {
     $ops = array();
 
     // Get the $ops from the module implementing the handler.
-    $callback = $fee['fee_handler'] .'_recurring_fee_ops';
+    $callback = 'uc_recurring_'. $fee['fee_handler'] .'_fee_ops';
     if (function_exists($callback)) {
       $ops = $callback('fee_admin', $fee);
     }
@@ -105,8 +105,8 @@ function uc_recurring_admin_filter_form_submit($form, &$form_state) {
 }
 
 // Confirm a recurring fee charge.
-function uc_recurring_admin_charge_form() {
-  $fee = uc_recurring_fee_load('user', arg(4));
+function uc_recurring_admin_charge_form($form_state, $uid) {
+  $fee = uc_recurring_fee_load('user', $uid);
   $context = array(
     'revision' => 'formatted-original',
     'location' => 'recurring-charge-form',
