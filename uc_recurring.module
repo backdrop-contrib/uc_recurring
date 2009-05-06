@@ -333,7 +333,6 @@ function uc_recurring_cron() {
                   SET next_charge = %d, 
                       remaining_intervals = 0, 
                       charged_intervals = charged_intervals + 1,
-                      order_id = %d
                    WHERE rfid = %d", time(), $fee['rfid']);
         // update the status which will invoke any hooks that respond to completed status
         uc_order_update_status($new_id, 'completed');
