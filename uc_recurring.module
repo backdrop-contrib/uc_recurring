@@ -298,10 +298,11 @@ function uc_recurring_cron() {
  */
 function uc_recurring_find_fee($fee_handler, $data) {
   $fee = db_fetch_array(db_query("SELECT * FROM {uc_recurring_users} WHERE fee_handler = '%s' AND data LIKE '%%s%'", $fee_handler, $data));
-  if ($fee) {
+  if (!empty($fee)) {
     $fee['data'] = unserialize($fee['data']);
+    return $fee;
   }
-  return $fee;
+  return FALSE;
 }
 
 /**
