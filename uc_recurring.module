@@ -228,7 +228,7 @@ function uc_recurring_form_alter(&$form, &$form_state, $form_id) {
 
 /**
  * TODO: Investigate the use/need for this function - the only way to setup a recurring payment after 
- * inital processing is if you have the clients payment details`
+ * inital processing is if you have the clients payment details - which for most gateways you wont.
  *
  * Submit function for the order view update form to process recurring fees.
  */
@@ -243,7 +243,7 @@ function uc_recurring_order_view_update_form_submit($form, &$form_state) {
         // if the fee amount is -1 use the product selling price as the recurring fee amount
         if ($fee->fee_amount == -1) {
           $fee->fee_amount = 0; 
-          foreach($arg1->products as $product) {
+          foreach($order->products as $product) {
             if ($fee->nid == $product->nid) {
               $fee->fee_amount = $product->price; 
             }
