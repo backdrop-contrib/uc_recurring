@@ -52,7 +52,7 @@ function uc_recurring_schema() {
         'type' => 'int',
         'size' => 'small',
         'unsigned' => TRUE,
-        'not null' => TRUE,
+        'not null' => FALSE,
         'default' => 1,
       ),
     ),
@@ -106,7 +106,7 @@ function uc_recurring_schema() {
         'type' => 'int',
         'size' => 'small',
         'unsigned' => TRUE,
-        'not null' => TRUE,
+        'not null' => FALSE,
         'default' => 1,
       ),
       'charged_intervals' => array(
@@ -135,8 +135,85 @@ function uc_recurring_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'attempts' => array(
+        'description' => t('How many times have we attempted to process this payment.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfid' => array(
+        'description' => t('The product fee this recurring fee was created from.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => 0,
+      ),
     ),
     'primary key' => array('rfid'),
+  );
+  $schema['uc_recurring_schedule'] = array(
+    'description' => t('Data for handling more complex recurring schedules.'),
+    'fields' => array(
+      'pfid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'interval_num' => array(
+        'description' => t('The number in the recurring schedule to.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'fee_amount' => array(
+        'description' => t('The amount of the schedule fee to charge.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'next_interval' => array(
+        'description' => t('The amount of time before next charge.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '0',
+      ),
+      'rfid' => array(
+        'description' => t('The specific id of the recurring fee to effect, NULL to effect all recurring fees.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('sid', 'interval_num'),
+  );
+
+  $schema['uc_recurring_extensions'] = array(
+    'description' => t('Data for handling extensions to recurring fees.'),
+    'fields' => array(
+      'pfid' => array(
+        'description' => t('The schedule ID that this extension relates to.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'rebill_attempt' => array(
+        'description' => t('The rebill attempt number.'),
+        'type' => 'int',
+        'size' => 'small',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'time_to_extend' => array(
+        'description' => t('Time in seconds to extend a recurring fee before next charge.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
   );
 
   return $schema;
@@ -221,6 +298,84 @@ function uc_recurring_update_6003() {
 
   db_change_field($ret, 'uc_recurring_products', 'fee_amount', 'fee_amount', array('type' => 'numeric', 'precision' => 15, 'scale' => 3, 'not null' => TRUE, 'default' => 0));
   db_change_field($ret, 'uc_recurring_users', 'fee_amount', 'fee_amount', array('type' => 'numeric', 'precision' => 15, 'scale' => 3, 'not null' => TRUE, 'default' => 0));
+
+  return $ret;
+}
+
+function uc_recurring_update_6004() {
+  $ret = array();
+
+  db_add_field($ret, 'uc_recurring_users', 'attempts', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
+  db_add_field($ret, 'uc_recurring_users', 'pfid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => 0));
+  db_change_field($ret, 'uc_recurring_products', 'number_intervals', 'number_intervals', array('type' => 'int', 'size' => 'small', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => 1));
+  db_change_field($ret, 'uc_recurring_users', 'remaining_intervals', 'remaining_intervals', array('type' => 'int', 'size' => 'small', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => 1));
+  $schema = array();
+  $schema['uc_recurring_schedule'] = array(
+    'description' => t('Data for handling more complex recurring schedules.'),
+    'fields' => array(
+      'pfid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'interval_num' => array(
+        'description' => t('The number in the recurring schedule to.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'fee_amount' => array(
+        'description' => t('The amount of the schedule fee to charge.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'next_interval' => array(
+        'description' => t('The amount of time before next charge.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '0',
+      ),
+      'rfid' => array(
+        'description' => t('The specific id of the recurring fee to effect, NULL to effect all recurring fees.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('pfid', 'interval_num'),
+  );
+
+  $schema['uc_recurring_extensions'] = array(
+    'description' => t('Data for handling extensions to recurring fees.'),
+    'fields' => array(
+      'pfid' => array(
+        'description' => t('The schedule ID that this extension relates to.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'rebill_attempt' => array(
+        'description' => t('The rebill attempt number.'),
+        'type' => 'int',
+        'size' => 'small',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'time_to_extend' => array(
+        'description' => t('Time in seconds to extend a recurring fee before next charge.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+  );
+  foreach ($schema as $name => $table) {
+    db_create_table($ret, $name, $table);
+  }
 
   return $ret;
 }
