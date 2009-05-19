@@ -326,8 +326,6 @@ function uc_recurring_renew($fee) {
     $new_order->order_id = $new_id;
     $fee['order_id'] = $new_id;
 
-    drupal_set_message(print_r($order,TRUE));
-
     // add recurring fee item to the order
     foreach ($new_order->products as $index => $product) {
       if ($fee['data']['nid'] == $product->nid) {
