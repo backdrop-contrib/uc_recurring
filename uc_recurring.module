@@ -246,6 +246,7 @@ function uc_recurring_order_view_update_form_submit($form, &$form_state) {
           foreach($order->products as $product) {
             if ($fee->nid == $product->nid) {
               $fee->fee_amount = $product->price; 
+              $fee->product = $product;
             }
           }
         }
@@ -314,22 +315,52 @@ function uc_recurring_renew($fee) {
   if (function_exists($renew_func)) {
     // Load the order.
     $order = uc_order_load($fee['order_id']);
-  
+
+    $fee_amount = $fee['fee_amount'];
+
     // create a new order by cloning the curring order and replacing order id's
-    $new_order = uc_order_new($order->uid, $state = 'in_checkout');
+    $new_order = uc_order_new($order->uid, 'in_checkout');
     $old_id = $fee['order_id'];
     $new_id = $new_order->order_id;
     $new_order = $order;
     $new_order->order_id = $new_id;
-    // needs a new set of product id's
-    foreach ($new_order->products as $index => $product) {
-      $new_order->products[$index]->order_id = $new_id;
-      unset($new_order->products[$index]->order_product_id);
-    }
-    uc_order_update_status($new_id, 'pending');
     $fee['order_id'] = $new_id;
-  
+
+    drupal_set_message(print_r($order,TRUE));
+
+    // add recurring fee item to the order
+    foreach ($new_order->products as $index => $product) {
+      if ($fee['data']['nid'] == $product->nid) {
+        $new_order->products[$index]->order_id = $new_id;
+        unset($new_order->products[$index]->order_product_id);
+      } 
+      else {
+        // this product isn't part of the recurring fee
+        unset($new_order->products[$index]);
+      }
+    }
+    // if this recurring fee does not match up to a product then create a dummy product that will appear in the invoice
+    if (count($new_order->products) <= 0) {
+      $product = new stdClass();
+      $product->order_id = $new_id;
+      $product->nid = 0;
+      $product->title = 'renewal';
+      $product->model = '';
+      $product->qty = 1;
+      $product->price = $fee_amount;
+
+      $new_order->products[] = $product;
+    }
+
+    // lets give other modules a chance to modify the new order
+    module_invoke_all('recurring_renew', $order, $fee);
+
+    // calculate the new fee amount to charge on this order 
+    $fee['fee_amount'] = uc_order_get_total($order);
+    uc_order_update_status($new_id, 'processing');
+
     if ($renew_func($order, $fee)) {
+      uc_order_update_status($new_id, 'payment_received');
       // payment was successful save the new order
       uc_order_save($new_order);
   
@@ -342,7 +373,7 @@ function uc_recurring_renew($fee) {
       if ($fee['remaining_intervals'] > 0) $fee['remaining_intervals'] -= 1;
 
       // Update the fee in the database.
-      if ($fee['remaining_intervals'] == 0) {
+      if ($fee['remaining_intervals'] != NULL && $fee['remaining_intervals'] == 0) {
         $next_charge = time();
   
         // TODO: should we provide any hooks/CA here?
@@ -355,14 +386,14 @@ function uc_recurring_renew($fee) {
           'uid' => $order->uid,
           'fee_handler' => $fee['fee_handler'],
           'next_charge' => $next_charge,
-          'fee_amount' => $fee['fee_amount'],
+          'fee_amount' => $fee_amount,
           'regular_interval' => $fee['regular_interval'],
           'remaining_intervals' => $fee['remaining_intervals'],
           'charged_intervals' => $fee['charged_intervals']+1,
           'order_id' => $new_id,
           'data' => serialize($fee['data']),
           'pfid' => $fee['pfid'],
-          'attempts' => $fee['attempts']+1,
+          'attempts' => 0,
         );
         $user_fee['rfid'] = uc_recurring_fee_save('user', $user_fee);
 
@@ -373,7 +404,8 @@ function uc_recurring_renew($fee) {
       db_query("UPDATE {uc_recurring_users} 
                 SET next_charge = %d, 
                     remaining_intervals = 0, 
-                    charged_intervals = charged_intervals + 1
+                    charged_intervals = charged_intervals + 1,
+                    attempts = attempts + 1 
                 WHERE rfid = %d", time(), $fee['rfid']);
       // update the status which will invoke any hooks that respond to completed status
       uc_order_update_status($new_id, 'completed');
@@ -459,6 +491,7 @@ function uc_recurring_order($op, &$arg1, $arg2) {
               foreach($arg1->products as $product) {
                 if ($fee->nid == $product->nid) {
                   $fee->fee_amount = $product->price; 
+                  $fee->product = $product;
                 }
               }
             }
@@ -907,7 +940,7 @@ function uc_recurring_fee_save($type, $data) {
 
       // Otherwise insert this feature as a new row.
       if (db_affected_rows() == 0) {
-        db_query("INSERT INTO {uc_recurring_users} (uid, fee_handler, next_charge, fee_amount, regular_interval, remaining_intervals, charged_intervals, order_id, data, created, pfid) VALUES (%d, '%s', %d, %f, '%s', %s, %d, %d, '%s', %d, %d, %d)",
+        db_query("INSERT INTO {uc_recurring_users} (uid, fee_handler, next_charge, fee_amount, regular_interval, remaining_intervals, charged_intervals, order_id, data, created, pfid, attempts) VALUES (%d, '%s', %d, %f, '%s', %s, %d, %d, '%s', %d, %d, %d)",
           $data['uid'], $data['fee_handler'], $data['next_charge'], $data['fee_amount'], $data['regular_interval'], $data['remaining_intervals'], $data['charged_intervals'], $data['order_id'], $data['data'], time(), $data['pfid'], $data['attempts']);
         $data['rfid'] = db_last_insert_id('uc_recurring_users', 'rfid');
       }
@@ -1038,6 +1071,7 @@ function uc_recurring_process($order, $fee) {
 
   if ($handler($order, $fee) == TRUE) {
     // successfully processed the setup of recurring fee
+    $fee->data['nid'] = $fee->product->nid;
     $user_fee = array(
       'rfid' => 0,
       'uid' => $order->uid,
