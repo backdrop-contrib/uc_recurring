@@ -52,9 +52,9 @@ function uc_recurring_admin() {
       l($fee['rfid'], 'admin/store/orders/recurring/view/fee/'. $fee['rfid']),
       l($fee['order_id'], 'admin/store/orders/'. $fee['order_id']),
       uc_price($fee['fee_amount'], $context),
-      $fee['remaining_intervals'] == 0 ? '-' : format_date($fee['next_charge'], 'small'),
+      $fee['remaining_intervals'] != NULL && $fee['remaining_intervals'] == 0 ? '-' : format_date($fee['next_charge'], 'small'),
       array('data' => check_plain($fee['regular_interval']), 'nowrap' => 'nowrap'),
-      $fee['remaining_intervals'],
+      $fee['remaining_intervals'] == NULL ? t('till cancelled') : $fee['remaining_intervals'],
       $fee['remaining_intervals'] + $fee['charged_intervals'],
       array('data' => implode(' ', $ops), 'nowrap' => 'nowrap'),
     );
