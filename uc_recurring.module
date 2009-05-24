@@ -240,17 +240,6 @@ function uc_recurring_order_view_update_form_submit($form, &$form_state) {
     if (count($fees)) {
       $pass = TRUE;
       foreach ($fees as $fee) {
-        // if the fee amount is -1 use the product selling price as the recurring fee amount
-        if ($fee->fee_amount == -1) {
-          $fee->fee_amount = 0; 
-          foreach($order->products as $product) {
-            if ($fee->nid == $product->nid) {
-              $fee->fee_amount = $product->price; 
-              $fee->product = $product;
-            }
-          }
-        }
-
         if (!uc_recurring_process($order, $fee)) {
           uc_order_comment_save($order->order_id, 0, t('The recurring fee for product @model failed.', array('@model' => $fee->model)), 'admin', $order->order_status);
           $pass = FALSE;
@@ -483,17 +472,6 @@ function uc_recurring_order($op, &$arg1, $arg2) {
         if (count($fees)) {
           $pass = TRUE;
           foreach ($fees as $fee) {
-            // if the fee amount is -1 use the product selling price as the recurring fee amount
-            if ($fee->fee_amount == -1) {
-              $fee->fee_amount = 0; 
-              foreach($arg1->products as $product) {
-                if ($fee->nid == $product->nid) {
-                  $fee->fee_amount = $product->price; 
-                  $fee->product = $product;
-                }
-              }
-            }
-
             if (!uc_recurring_process($arg1, $fee)) {
               uc_order_comment_save($arg1->order_id, 0, t('The recurring fee for product @model failed.', array('@model' => $fee->model)), 'admin', $arg1->order_status);
               $pass = FALSE;
@@ -1045,6 +1023,15 @@ function uc_recurring_find_fees($order) {
   $fees = array();
   $result = db_query("SELECT rp.*, nid FROM {uc_recurring_products} AS rp LEFT JOIN {uc_product_features} AS pf ON rp.pfid = pf.pfid WHERE rp.model IN ('". implode("', '", $models) ."') OR (rp.model = '' AND pf.nid IN ('". implode("', '", $nids) ."'))");
   while ($fee = db_fetch_object($result)) {
+    if ($fee->fee_amount == -1) {
+      $fee->fee_amount = 0; 
+      foreach($order->products as $product) {
+        if ($fee->nid == $product->nid) {
+          $fee->fee_amount = $product->price; 
+          $fee->product = $product;
+        }
+      }
+    }
     $fees[] = $fee;
   }
   return $fees;
