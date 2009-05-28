@@ -186,7 +186,7 @@ function uc_recurring_schema() {
         'not null' => FALSE,
       ),
     ),
-    'primary key' => array('sid', 'interval_num'),
+    'primary key' => array('pfid', 'interval_num'),
   );
 
   $schema['uc_recurring_extensions'] = array(
