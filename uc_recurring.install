@@ -79,6 +79,13 @@ function uc_recurring_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'fee_title' => array(
+        'description' => t('The text shown on invoices for this recurring fee.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
       'next_charge' => array(
         'description' => t('The timestamp when the next charge should be performed.'),
         'type' => 'int',
@@ -196,7 +203,8 @@ function uc_recurring_schema() {
         'description' => t('The schedule ID that this extension relates to.'),
         'type' => 'int',
         'unsigned' => TRUE,
-        'not null' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
       ),
       'rebill_attempt' => array(
         'description' => t('The rebill attempt number.'),
@@ -211,7 +219,7 @@ function uc_recurring_schema() {
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
-        'default' => 0,
+        'default' => 1,
       ),
     ),
   );
@@ -376,6 +384,17 @@ function uc_recurring_update_6004() {
   foreach ($schema as $name => $table) {
     db_create_table($ret, $name, $table);
   }
+
+  return $ret;
+}
+
+function uc_recurring_update_6005() {
+  $ret = array();
+
+  db_add_field($ret, 'uc_recurring_users', 'fee_title', array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''));
+  db_change_field($ret, 'uc_recurring_extensions', 'pfid', 'pfid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => NULL));
+  // setup default extensions
+  db_query("INSERT INTO {uc_recurring_extensions} (pfid, rebill_attempt, time_to_extend) VALUES (NULL, 1, 259200), (NULL, 2, 432000), (NULL, 3, 0)"); 
 
   return $ret;
 }

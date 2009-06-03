@@ -314,30 +314,20 @@ function uc_recurring_renew($fee) {
     $new_order = $order;
     $new_order->order_id = $new_id;
     $fee['order_id'] = $new_id;
+    $fee['attempts']++;
 
+    unset($new_order->products);
     // add recurring fee item to the order
-    foreach ($new_order->products as $index => $product) {
-      if ($fee['data']['nid'] == $product->nid) {
-        $new_order->products[$index]->order_id = $new_id;
-        unset($new_order->products[$index]->order_product_id);
-      } 
-      else {
-        // this product isn't part of the recurring fee
-        unset($new_order->products[$index]);
-      }
-    }
-    // if this recurring fee does not match up to a product then create a dummy product that will appear in the invoice
-    if (count($new_order->products) <= 0) {
-      $product = new stdClass();
-      $product->order_id = $new_id;
-      $product->nid = 0;
-      $product->title = 'renewal';
-      $product->model = '';
-      $product->qty = 1;
-      $product->price = $fee_amount;
+    $product = new stdClass();
+    $product->order_id = $new_id;
+    $product->nid = $fee['data']['nid'];
+    $product->model = $fee['data']['model'];
+    $product->title = $fee['fee_title'] == '' ? 'renewal' : $fee['fee_title'];
+    $product->qty = 1;
+    $product->price = $fee_amount;
+    $product->data = $fee['data']['product']->data;
 
-      $new_order->products[] = $product;
-    }
+    $new_order->products[] = $product;
 
     // lets give other modules a chance to modify the new order
     module_invoke_all('recurring_renew', $order, $fee);
@@ -356,7 +346,6 @@ function uc_recurring_renew($fee) {
       // also add a comment in the old order history to refer to the recurring fee and order
       uc_order_comment_save($old_id, 0, t('New recurring fee processed, new order is <a href="!url">!order_id</a>.', array('!url' => url('admin/store/orders/'.$new_id), '!order_id' => $new_id)));
 
-
       if ($fee['remaining_intervals'] > 0) $fee['remaining_intervals'] -= 1;
 
       // Update the fee in the database.
@@ -372,6 +361,7 @@ function uc_recurring_renew($fee) {
           'rfid' => 0,
           'uid' => $order->uid,
           'fee_handler' => $fee['fee_handler'],
+          'fee_title' => $fee['fee_title'],
           'next_charge' => $next_charge,
           'fee_amount' => $fee_amount,
           'regular_interval' => $fee['regular_interval'],
@@ -384,7 +374,7 @@ function uc_recurring_renew($fee) {
         );
         $user_fee['rfid'] = uc_recurring_fee_save('user', $user_fee);
 
-        uc_order_comment_save($new_id, 0, t('New recurring fee created. (ID: <a href="!url">!fee</a>)', array('!url' => url('admin/store/orders/recurring/view/fee/'. $user_fee['rfid']), '!fee' => $user_fee['rfid'])));
+        uc_order_comment_save($new_id, 0, t('New recurring fee created for next renewal. (<a href="!url">click here to see when due</a>)', array('!url' => url('admin/store/orders/recurring/view/fee/'. $user_fee['rfid']), '!fee' => $user_fee['rfid'])));
       }
   
       // stop the old recurring payment
@@ -392,8 +382,8 @@ function uc_recurring_renew($fee) {
                 SET next_charge = %d, 
                     remaining_intervals = 0, 
                     charged_intervals = charged_intervals + 1,
-                    attempts = attempts + 1 
-                WHERE rfid = %d", time(), $fee['rfid']);
+                    attempts = %d 
+                WHERE rfid = %d", time(), $fee['attempts'], $fee['rfid']);
       // update the status which will invoke any hooks that respond to completed status
       uc_order_update_status($new_id, 'completed');
   
@@ -417,11 +407,24 @@ function uc_recurring_renew($fee) {
       //    extend current order for set time to give user a chance to fix problem
 
       // handle extensions
-      // $extension = strtotime('+3 days');
-      // db_query("UPDATE {uc_recurring_users} 
-      //          SET attempts = attempts + 1, 
-      //              next_charge = %d, 
-      //          WHERE rfid = %d", $extension, $fee['rfid']);
+      $result = db_query("SELECT * FROM {uc_recurring_extensions} WHERE rebill_attempt = %d AND (pfid IS NULL OR pfid = %d) ORDER BY pfid DESC", $fee['attempts'], $fee['pfid']);
+      $extend_seconds = 0;
+      if ($result == FALSE) {
+        // no more extensions
+      }
+      else {
+        $extension = db_fetch_array($result);
+        $extend_seconds = $extension['time_to_extend'];
+        if ($extend_seconds) {
+           // TODO: we probably want to trigger an email message to user
+        }
+      }
+
+      $ext = $fee['next_charge'] + $extend_seconds;
+      db_query("UPDATE {uc_recurring_users} 
+                SET attempts = %d, 
+                  next_charge = %d 
+                WHERE rfid = %d", $fee['attempts'], $ext, $fee['rfid']);
     }
   }
   return FALSE;
@@ -807,19 +810,47 @@ function uc_recurring_settings_form() {
     ),
     '#default_value' => variable_get('uc_recurring_checkout_fail', 'fail'),
   );
+  /*
+  TODO: feature request, prevent/warn users against purcahsing the same product while they have an active subscription
   $form['uc_recurring_duplicate_orders'] = array(
     '#type' => 'radios',
     '#title' => t('Action to take if a person attempts to renew/re-purchase a that they already have an active recurring fee.'),
     '#description' => t('Select how you want to handle users that attempt to renewing or purchase a subscription when they already have an active recurring fee.'),
     '#options' => array(
-      'fail' => t('Prevant purchase.'),
-      'proceed' => t('Warn user but allow purchase.'),
+      'fail' => t('Prevent purchase.'),
+      'proceed' => t('Warn user, but allow purchase.'),
       'silent' => t('Allow the purchase.'),
     ),
     '#default_value' => variable_get('uc_recurring_duplicate_orders', 'proceed'),
   );
+  */
 
- 
+  $form['extensions'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Extensions'),
+    '#description' => t('Configure how many time and at what intervals to attempt rebilling on a failed recurring payment.'),
+  );
+  $result = db_query("SELECT * from {uc_recurring_extensions} WHERE pfid IS NULL ORDER BY rebill_attempt");
+  while($ext = db_fetch_array($result)) {
+    $rows[] = array(
+      'attempt' => $ext['rebill_attempt'],
+      'time_to_extent' => $ext['time_to_extend'] == 0 ? t('expire') : t('@num_days days', array('@num_days' => $ext['time_to_extend'] / (24*60*60))), 
+    );
+    if ($ext['time_to_extend'] == 0) break;
+  }
+  /*
+  TODO: need to build forms to edit/update the extension settings
+  $rows[] = array(
+    'edit' => array(
+      'data' => l(t('Edit default extention settings'), 'admin/settings/recurring/extensions'),
+      'colspan' => 2
+    )
+  );
+  */
+  $form['extensions']['default'] = array(
+    '#value' => theme('table', array('Attempt #', 'Time to extend'), $rows, array('style' => "width: auto;")) 
+  );
+
   return $form;
 }
 
@@ -911,13 +942,13 @@ function uc_recurring_fee_save($type, $data) {
         $data['remaining_intervals'] = intval($data['remaining_intervals']);
       }
       // First attempt to update an existing row.
-      db_query("UPDATE {uc_recurring_users} SET uid = %d, fee_handler = '%s', next_charge = %d, fee_amount = %f, regular_interval = '%s', remaining_intervals = %s, charged_intervals = %d, order_id = %d, data = '%s', pfid = %d, attempts = %d WHERE rfid = %d",
-        $data['uid'], $data['fee_handler'], $data['next_charge'], $data['fee_amount'], $data['regular_interval'], $data['remaining_intervals'], $data['charged_intervals'], $data['order_id'], $data['data'], $data['pfid'], $data['attempts'], $data['rfid']);
+      db_query("UPDATE {uc_recurring_users} SET uid = %d, fee_handler = '%s', fee_title = '%s', next_charge = %d, fee_amount = %f, regular_interval = '%s', remaining_intervals = %s, charged_intervals = %d, order_id = %d, data = '%s', pfid = %d, attempts = %d WHERE rfid = %d",
+        $data['uid'], $data['fee_handler'], $data['fee_title'], $data['next_charge'], $data['fee_amount'], $data['regular_interval'], $data['remaining_intervals'], $data['charged_intervals'], $data['order_id'], $data['data'], $data['pfid'], $data['attempts'], $data['rfid']);
 
       // Otherwise insert this feature as a new row.
       if (db_affected_rows() == 0) {
-        db_query("INSERT INTO {uc_recurring_users} (uid, fee_handler, next_charge, fee_amount, regular_interval, remaining_intervals, charged_intervals, order_id, data, created, pfid, attempts) VALUES (%d, '%s', %d, %f, '%s', %s, %d, %d, '%s', %d, %d, %d)",
-          $data['uid'], $data['fee_handler'], $data['next_charge'], $data['fee_amount'], $data['regular_interval'], $data['remaining_intervals'], $data['charged_intervals'], $data['order_id'], $data['data'], time(), $data['pfid'], $data['attempts']);
+        db_query("INSERT INTO {uc_recurring_users} (uid, fee_handler, fee_title, next_charge, fee_amount, regular_interval, remaining_intervals, charged_intervals, order_id, data, created, pfid, attempts) VALUES (%d, '%s', '%s', %d, %f, '%s', %s, %d, %d, '%s', %d, %d, %d)",
+          $data['uid'], $data['fee_handler'], $data['fee_title'], $data['next_charge'], $data['fee_amount'], $data['regular_interval'], $data['remaining_intervals'], $data['charged_intervals'], $data['order_id'], $data['data'], time(), $data['pfid'], $data['attempts']);
         $data['rfid'] = db_last_insert_id('uc_recurring_users', 'rfid');
       }
 
@@ -1021,14 +1052,17 @@ function uc_recurring_find_fees($order) {
   }
 
   $fees = array();
-  $result = db_query("SELECT rp.*, nid FROM {uc_recurring_products} AS rp LEFT JOIN {uc_product_features} AS pf ON rp.pfid = pf.pfid WHERE rp.model IN ('". implode("', '", $models) ."') OR (rp.model = '' AND pf.nid IN ('". implode("', '", $nids) ."'))");
+  $result = db_query("SELECT rp.*, pf.nid, n.title as fee_title
+                      FROM {uc_recurring_products} AS rp 
+                        LEFT JOIN {uc_product_features} AS pf ON rp.pfid = pf.pfid 
+                        LEFT JOIN {node} AS n on n.nid = pf.nid 
+                      WHERE rp.model IN ('". implode("', '", $models) ."') OR (rp.model = '' AND pf.nid IN ('". implode("', '", $nids) ."'))");
   while ($fee = db_fetch_object($result)) {
-    if ($fee->fee_amount == -1) {
-      $fee->fee_amount = 0; 
-      foreach($order->products as $product) {
-        if ($fee->nid == $product->nid) {
+    foreach($order->products as $product) {
+      if ($fee->nid == $product->nid) {
+        $fee->product = $product;
+        if ($fee->fee_amount == -1) {
           $fee->fee_amount = $product->price; 
-          $fee->product = $product;
         }
       }
     }
@@ -1055,12 +1089,15 @@ function uc_recurring_process($order, $fee) {
   }
 
   if ($handler($order, $fee) == TRUE) {
+    $fee->data['nid'] = $fee->nid;
+    $fee->data['model'] = $fee->product->model;
+    $fee->data['product'] = $fee->product;
     // successfully processed the setup of recurring fee
-    $fee->data['nid'] = $fee->product->nid;
     $user_fee = array(
       'rfid' => 0,
       'uid' => $order->uid,
       'fee_handler' => $fee->fee_handler,
+      'fee_title' => $fee->fee_title,
       'next_charge' => strtotime('+'. $fee->initial_charge),
       'fee_amount' => $fee->fee_amount,
       'regular_interval' => $fee->regular_interval,
