@@ -354,7 +354,7 @@ function uc_recurring_renew($fee) {
       if ($fee['remaining_intervals'] > 0) $fee['remaining_intervals'] -= 1;
 
       // Update the fee in the database.
-      if ($fee['remaining_intervals'] != NULL && $fee['remaining_intervals'] == 0) {
+      if ($fee['remaining_intervals'] !== NULL && $fee['remaining_intervals'] == 0) {
         $next_charge = time();
   
         // TODO: should we provide any hooks/CA here?
@@ -531,7 +531,7 @@ function uc_recurring_recurring_fee_ops($context, $fee) {
 
   switch ($context) {
     case 'fee_admin':
-      if ($fee['remaining_intervals'] > 0 || $fee['remaining_intervals'] == NULL) {
+      if ($fee['remaining_intervals'] > 0 || $fee['remaining_intervals'] === NULL) {
         $ops[] = l(t('charge'), 'admin/store/orders/recurring/'. $fee['rfid'] .'/charge');
       }
       $ops[] = l(t('edit'), 'admin/store/orders/recurring/'. $fee['rfid'] .'/edit');
@@ -901,7 +901,7 @@ function theme_uc_recurring_user_table($uid) {
       uc_price($fee['fee_amount'], $context),
       array('data' => check_plain($fee['regular_interval']), 'nowrap' => 'nowrap'),
       format_date($fee['next_charge'], 'small'),
-      $fee['remaining_intervals'] == NULL ? t('till cancelled') : $fee['remaining_intervals'],
+      $fee['remaining_intervals'] === NULL ? t('till cancelled') : $fee['remaining_intervals'],
       array('data' => implode(' ', $ops), 'nowrap' => 'nowrap'),
     );
   }
@@ -940,7 +940,7 @@ function uc_recurring_fee_save($type, $data) {
       break;
 
     case 'user':
-      if ($data['remaining_intervals'] == NULL) {
+      if ($data['remaining_intervals'] === NULL) {
         $data['remaining_intervals'] = 'NULL';
       }
       else {
