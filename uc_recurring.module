@@ -297,6 +297,11 @@ function uc_recurring_find_fee($fee_handler, $data) {
 
 /**
  * Process a renewal, either from the cron job or manually from a fee_handler 
+ *
+ * @param $fee
+ *   array of the fee object to be renewed  
+ * @return 
+ *   (int)order_id of the new order or FALSE if unable to renew fee
  */
 function uc_recurring_renew($fee) {
   // attempt to a call uc_recurring_[fee_handler]_renew() function if it exits
@@ -391,7 +396,7 @@ function uc_recurring_renew($fee) {
       // Modules can hook into the charge process using hook_recurring_api().
       module_invoke_all('recurring_api', 'charge', $fee);
   
-      return TRUE;
+      return $new_id;
     }
     else {
       uc_order_comment_save($fee['order_id'], 0, t('Error: Recurring fee <a href="!url">!fee</a> for product @model failed.', array('!url' => url('admin/store/orders/recurring/view/fee/'. $fee['rfid']), '!fee' => $fee['rfid'], '@model' => $fee['data']['model'])));
