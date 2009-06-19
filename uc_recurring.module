@@ -300,19 +300,23 @@ function uc_recurring_find_fee($fee_handler, $data) {
  *
  * @param $fee
  *   array of the fee object to be renewed  
+ * @param $check_handler
+ *   set this FALSE if the recurring payment does not need to check the fee_handler, 
+ *   it means the payment method/gateway needs to handle the actually payment recording 
+ *   itself, this is useful for gateways like Paypal's IPN.
  * @return 
  *   (int)order_id of the new order or FALSE if unable to renew fee
  */
-function uc_recurring_renew($fee) {
+function uc_recurring_renew($fee, $check_handler = TRUE) {
   // attempt to a call uc_recurring_[fee_handler]_renew() function if it exits
   $renew_func = 'uc_recurring_'. $fee['fee_handler'] .'_renew'; 
-  if (function_exists($renew_func)) {
+  if ($check_handler == FALSE || function_exists($renew_func)) {
     // Load the order.
     $order = uc_order_load($fee['order_id']);
 
     $fee_amount = $fee['fee_amount'];
 
-    // create a new order by cloning the curring order and replacing order id's
+    // create a new order by cloning the currenting order and replacing order id's
     $new_order = uc_order_new($order->uid, 'in_checkout');
     $old_id = $fee['order_id'];
     $new_id = $new_order->order_id;
@@ -335,13 +339,13 @@ function uc_recurring_renew($fee) {
     $new_order->products[] = $product;
 
     // lets give other modules a chance to modify the new order
-    module_invoke_all('recurring_renew', $order, $fee);
+    module_invoke_all('recurring_renew', $new_order, $fee);
 
     // calculate the new fee amount to charge on this order 
-    $fee['fee_amount'] = uc_order_get_total($order);
+    $fee['fee_amount'] = uc_order_get_total($new_order);
     uc_order_update_status($new_id, 'processing');
 
-    if ($renew_func($order, $fee)) {
+    if ($check_handler == FALSE || ($check_handler && $renew_func($new_order, $fee))) {
       uc_order_update_status($new_id, 'payment_received');
       // payment was successful save the new order
       uc_order_save($new_order);
@@ -364,7 +368,7 @@ function uc_recurring_renew($fee) {
         $next_charge = strtotime('+'. $fee['regular_interval']);
         $user_fee = array(
           'rfid' => 0,
-          'uid' => $order->uid,
+          'uid' => $new_order->uid,
           'fee_handler' => $fee['fee_handler'],
           'fee_title' => $fee['fee_title'],
           'next_charge' => $next_charge,
