@@ -269,8 +269,11 @@ function uc_recurring_cron() {
   while ($fee = db_fetch_array($result)) {
     $fee['data'] = unserialize($fee['data']);
 
-    if (uc_recurring_renew($fee)) {
+    $order_id = uc_recurring_renew($fee);
+    if ($order_id) {
       $successes++;
+      // update the status which will invoke any hooks that respond to completed status
+      uc_order_update_status($new_id, 'completed');
     } 
     else {
       // payment attempted but failed
@@ -393,8 +396,6 @@ function uc_recurring_renew($fee, $check_handler = TRUE) {
                     charged_intervals = charged_intervals + 1,
                     attempts = %d 
                 WHERE rfid = %d", time(), $fee['attempts'], $fee['rfid']);
-      // update the status which will invoke any hooks that respond to completed status
-      uc_order_update_status($new_id, 'completed');
   
       // TODO: should this just be part of conditional actions?
       // Modules can hook into the charge process using hook_recurring_api().
