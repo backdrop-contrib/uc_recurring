@@ -51,9 +51,16 @@ function uc_recurring_schema() {
         'description' => t('The number of times the fee should be charged.'),
         'type' => 'int',
         'size' => 'small',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => -1,
+      ),
+      'nid' => array(
+        'description' => t('The ID of the node this role feature is attached to.'),
+        'type' => 'int',
         'unsigned' => TRUE,
-        'not null' => FALSE,
-        'default' => 1,
+        'not null' => TRUE,
+        'default' => 0,
       ),
     ),
     'primary key' => array('pfid'),
@@ -112,9 +119,9 @@ function uc_recurring_schema() {
         'description' => t('The remaining number of times the fee should be charged.'),
         'type' => 'int',
         'size' => 'small',
-        'unsigned' => TRUE,
-        'not null' => FALSE,
-        'default' => 1,
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => -1,
       ),
       'charged_intervals' => array(
         'description' => t('Counter for how many times the fee has been charged.'),
@@ -152,6 +159,21 @@ function uc_recurring_schema() {
       'pfid' => array(
         'description' => t('The product fee this recurring fee was created from.'),
         'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'order_product_id' => array(
+        'description' => 'The product ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'own_handler' => array(
+        'description' => t('Indicate if recurring fee is done by own handler, such as Paypal.'),
+        'type' => 'int',
+        'size' => 'small',
         'unsigned' => TRUE,
         'not null' => FALSE,
         'default' => 0,
@@ -229,6 +251,7 @@ function uc_recurring_schema() {
 
 function uc_recurring_install() {
   drupal_install_schema('uc_recurring');
+  db_query("INSERT INTO {uc_recurring_extensions} (pfid, rebill_attempt, time_to_extend) VALUES (NULL, 1, 259200), (NULL, 2, 432000), (NULL, 3, 0)");
 }
 
 function uc_recurring_uninstall() {
@@ -394,7 +417,34 @@ function uc_recurring_update_6005() {
   db_add_field($ret, 'uc_recurring_users', 'fee_title', array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''));
   db_change_field($ret, 'uc_recurring_extensions', 'pfid', 'pfid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => NULL));
   // setup default extensions
-  db_query("INSERT INTO {uc_recurring_extensions} (pfid, rebill_attempt, time_to_extend) VALUES (NULL, 1, 259200), (NULL, 2, 432000), (NULL, 3, 0)"); 
+  db_query("INSERT INTO {uc_recurring_extensions} (pfid, rebill_attempt, time_to_extend) VALUES (NULL, 1, 259200), (NULL, 2, 432000), (NULL, 3, 0)");
+
+  return $ret;
+}
+
+/**
+ * Add product and product node ID to recurring users table.
+ */
+function uc_recurring_update_6006() {
+  $ret = array();
+
+  // Make remaining interval fields singable, so we can set it as -1, to
+  // indicate unlimited recurring fees.
+  $intervals = array(
+    'type' => 'int',
+    'size' => 'small',
+    'unsigned' => FALSE,
+    'not null' => TRUE,
+    'default' => -1,
+  );
+
+  db_change_field($ret, 'uc_recurring_users', 'remaining_intervals', 'remaining_intervals', array('description' => t('The remaining number of times the fee should be charged.')) + $intervals);
+  db_change_field($ret, 'uc_recurring_products', 'number_intervals', 'number_intervals', array('description' => t('The number of times the fee should be charged.')) + $intervals);
+
+
+  db_add_field($ret, 'uc_recurring_users', 'order_product_id', array('description' => 'The product ID.', 'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
+  db_add_field($ret, 'uc_recurring_users', 'own_handler', array('description' => t('Indicate if recurring fee is done by own handler, such as Paypal.'), 'type' => 'int', 'size' => 'small', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
+  db_add_field($ret, 'uc_recurring_products', 'nid', array('description' => 'The ID of the node this role feature is attached to.', 'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
 
   return $ret;
 }
