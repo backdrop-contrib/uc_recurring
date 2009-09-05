@@ -211,7 +211,7 @@ function uc_recurring_cron() {
         $fail++;
       }
     }
-    watchdog('uc_recurring', 'success recurring fees processed successfully; @fail failed.', array('@success' => $success, '@fail' => $fail));
+    watchdog('uc_recurring', '@success recurring fees processed successfully; @fail failed.', array('@success' => $success, '@fail' => $fail));
   }
 }
 
