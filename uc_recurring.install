@@ -438,6 +438,12 @@ function uc_recurring_update_6006() {
     'default' => -1,
   );
 
+  // make sure that the default value is already correct
+  $sql = "UPDATE {uc_recurring_users} SET remaining_intervals = -1 WHERE remaining_intervals IS NULL";
+  db_query($sql);
+  $sql = "UPDATE {uc_recurring_products} SET number_intervals = -1 WHERE number_intervals IS NULL";
+  db_query($sql);
+
   db_change_field($ret, 'uc_recurring_users', 'remaining_intervals', 'remaining_intervals', array('description' => t('The remaining number of times the fee should be charged.')) + $intervals);
   db_change_field($ret, 'uc_recurring_products', 'number_intervals', 'number_intervals', array('description' => t('The number of times the fee should be charged.')) + $intervals);
 
