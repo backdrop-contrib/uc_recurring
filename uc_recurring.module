@@ -609,11 +609,14 @@ function uc_recurring_fee_product_load($pfid) {
  */
 function uc_recurring_fee_user_load($rfid) {
   $fee = db_fetch_object(db_query("SELECT * FROM {uc_recurring_users} WHERE rfid = %d", $rfid));
-  $fee->data = unserialize($fee->data);
+  if ($fee) {
+    $fee->data = unserialize($fee->data);
 
-  // Allow other modules to change the saved data.
-  drupal_alter('recurring_fee_product_load', $product);
-  return $fee;
+    // Allow other modules to change the saved data.
+    drupal_alter('recurring_fee_product_load', $product);
+    return $fee;
+  }
+  return FALSE;
 }
 
 /**

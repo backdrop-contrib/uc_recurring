@@ -27,8 +27,8 @@ function uc_recurring_admin() {
     $fees[] = $fee;
   }
 
+  $output = drupal_get_form('uc_recurring_admin_filter_form', $item);
   if ($fees) {
-    $output = drupal_get_form('uc_recurring_admin_filter_form', $item);
     $header = array(
       array('data' => t('ID'), 'sort' => 'desc'),
       array('data' => t('Order')),
@@ -62,8 +62,8 @@ function uc_recurring_admin() {
     $output .= theme('table', $header, $rows);
     $output .= theme('pager', NULL, 10);
 
-    $output .= l(t('Back to the full list'), 'admin/store/orders/recurring');
   }
+  $output .= l(t('Back to the full list'), 'admin/store/orders/recurring');
 
   return $output;
 }
