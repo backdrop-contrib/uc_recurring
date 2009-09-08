@@ -141,6 +141,7 @@ function uc_recurring_schema() {
       'data' => array(
         'description' => t('Serialized array of extra data.'),
         'type' => 'text',
+        'serialize' => TRUE,
       ),
       'created' => array(
         'description' => t('Timestamp for when the fee was first attached to the user.'),

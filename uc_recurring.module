@@ -341,7 +341,7 @@ function uc_recurring_process_order($order) {
       $fee->data = array(
         'model' => $product->model,
         'nid' => $product->nid,
-        /*'recurring orders' => array(),*/   // empty arrays are causing unserialize to not work, could just be a bug in one version of php??
+        'recurring orders' => array(),
       );
       $fee->attempts = 0;
       $fee->pfid = $product->pfid;
@@ -572,7 +572,6 @@ function uc_recurring_fee_user_save($fee) {
   // Update an existing row.
   drupal_alter('recurring_fee_product_save', $product);
 
-  $fee->data = serialize($fee->data);
   if (!empty($fee->rfid)) {
     // Update an existing row.
     drupal_write_record('uc_recurring_users', $fee, array('rfid'));
