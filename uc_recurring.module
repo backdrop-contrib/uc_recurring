@@ -594,6 +594,9 @@ function uc_recurring_fee_user_save($fee) {
 function uc_recurring_fee_product_load($pfid) {
   $product = db_fetch_object(db_query("SELECT * FROM {uc_recurring_products} WHERE pfid = %d", $pfid));
 
+  list($product->initial_charge_value, $product->initial_charge_unit) = explode(' ', $product->initial_charge);
+  list($product->regular_interval_value, $product->regular_interval_unit) = explode(' ', $product->regular_interval);
+
   // Allow other module to alter the loaded object.
   drupal_alter('recurring_fee_product_load', $product);
 
@@ -845,7 +848,7 @@ function uc_recurring_feature_form($form_state, $node, $feature) {
   );
 
   $attributes = array();
-  if (empty($product->fee_amount)) {
+  if ($product->fee_amount == 0) {
     $attributes['checked'] = 'checked';
   }
   $form['fee']['fee_same_product'] = array(
@@ -862,11 +865,11 @@ function uc_recurring_feature_form($form_state, $node, $feature) {
     '#type' => 'textfield',
     '#title' => t('Recurring fee amount'),
     '#description' => t('Charge this amount each billing period.<br />The product price is still charged at checkout.'),
-    '#default_value' => empty($product->fee_amount) ? $node->sell_price : $product->fee_amount,
+    '#default_value' => $product->fee_amount == 0 ? $node->sell_price : $product->fee_amount,
     '#size' => 16,
     '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),
     '#field_suffix' => variable_get('uc_sign_after_amount', FALSE) ? variable_get('uc_currency_sign', '$') : '',
-    '#attributes' => empty($product->fee_amount) ? array('disabled' => 'disabled') : array(),
+    '#attributes' => $product->fee_amount == 0 ? array('disabled' => 'disabled') : array(),
   );
 
   $form['interval'] = array(
