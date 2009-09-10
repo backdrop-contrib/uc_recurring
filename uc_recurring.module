@@ -180,6 +180,22 @@ function uc_recurring_form_uc_order_view_update_form_alter(&$form, $form_state) 
 }
 
 /**
+ * Implementation of hook_recurring_info().
+ * 
+ * Add a default handler.
+ */
+function uc_recurring_recurring_info() {
+  $items['default'] = array(
+    'name' => t('Default handler'),
+    'fee handler' => 'default', 
+    'process' => 'uc_recurring_default_handler',
+    'renew' => 'uc_recurring_default_handler',
+  );
+
+  return $items;
+}
+
+/**
  * Submit handler for the processing recurring fee.
  */
 function uc_recurring_order_view_update_form_submit($form, &$form_state) {
@@ -488,12 +504,7 @@ function uc_recurring_get_recurring_info($key = '', $reset = FALSE) {
   }
 
   if (!empty($key)) {
-    $default_handler = array(
-      'fee handler' => 'default', 
-      'process' => 'uc_recurring_default_handler',
-      'renew' => 'uc_recurring_default_handler', 
-    );
-    $return = !empty($data[$key]) ? $data[$key] : $default_handler;
+    $return = !empty($data[$key]) ? $data[$key] : array();
   }
   else {
     $return = $data;
