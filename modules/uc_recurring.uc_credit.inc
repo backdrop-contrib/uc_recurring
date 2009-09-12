@@ -10,10 +10,11 @@
  * Implementation of hook_recurring_info().
  */
 function uc_recurring_uc_credit_recurring_info() {
+  $gateway = uc_credit_default_gateway();
   $items['credit'] = array(
     'name' => t('Credit card'),
     'payment method' => 'credit',
-    'fee handler' => 'credit',
+    'fee handler' => $gateway,
     'module' => 'UC recurring',
     'process' => 'uc_recurring_uc_credit',
     'renew' => 'uc_recurring_uc_credit',
