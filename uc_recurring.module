@@ -140,7 +140,7 @@ function uc_recurring_form_uc_cart_checkout_form_alter(&$form, $form_state) {
     // Remove invalid payment methods from the payment pane.
     $valid = variable_get('uc_recurring_payment_methods', array());
     foreach (array_keys($form['panes']['payment']['payment_method']['#options']) as $key) {
-      if (!isset($valid[$key]) || $valid[$key] === 0) {
+      if ($valid[$key] === 0 || !uc_recurring_payment_method_supported($key)) {
         unset($form['panes']['payment']['payment_method']['#options'][$key]);
       }
     }
@@ -148,7 +148,9 @@ function uc_recurring_form_uc_cart_checkout_form_alter(&$form, $form_state) {
     $count = count($form['panes']['payment']['payment_method']['#options']);
     if ($count == 0) {
       // Display an error message if no payment methods remain.
-      drupal_set_message(t('There are no payment methods configured for orders with recurring fees. Please contact an administrator to solve the issue.'), 'error');
+      if (user_access('administer recurring fees')) {
+        drupal_set_message(t('There are no payment methods configured for orders with recurring fees, enable one from <a href="@url">recurring fee admin settings</a>.', array('@url' => url('admin/store/settings/products/edit/features'))), 'error');
+      }
     }
     elseif ($count == 1) {
       // If only one payment method remains, make it the default.
@@ -514,6 +516,20 @@ function uc_recurring_get_recurring_info($key = '', $reset = FALSE) {
 
 function uc_recurring_default_handler() {
   return TRUE;
+}
+
+/**
+ * Checks that a payment method can process recurring fees. This is done by
+ * checking that a recurring fee handler exists for the payment method.
+ * 
+ * @param $payment method
+ *   The id of the payment method.
+ * @return
+ *   TRUE is a valid fee handler for this payment method is found.
+ */
+function uc_recurring_payment_method_supported($payment_method) {
+  $info = uc_recurring_get_recurring_info();
+  return !empty($info[$info[$payment_method]['fee handler']]);
 }
 
 /**

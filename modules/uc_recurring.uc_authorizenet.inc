@@ -10,14 +10,16 @@
  * Implementation of hook_recurring_info().
  */
 function uc_recurring_uc_authorizenet_recurring_info() {
-  $items['authorizenet_cim'] = array(
-    'name' => t('Authorize.net (CIM)'),
-    'payment method' => 'credit',
-    'module' => 'uc_recurring',
-    'fee handler' => 'authorizenet_cim',
-    'renew' => 'uc_recurring_authorizenet_cim_renew',
-    'process' => 'uc_recurring_authorizenet_cim_process',
-  );
+  if (variable_get('uc_authnet_cim_mode', 'disabled') != 'disabled') {
+    $items['authorizenet'] = array(
+      'name' => t('Authorize.net (CIM)'),
+      'payment method' => 'credit',
+      'module' => 'uc_recurring',
+      'fee handler' => 'authorizenet',
+      'renew' => 'uc_recurring_authorizenet_cim_renew',
+      'process' => 'uc_recurring_authorizenet_cim_process',
+    );
+  }
   return $items;
 }
 
