@@ -524,7 +524,7 @@ function uc_recurring_default_handler() {
  */
 function uc_recurring_includes() {
   $return = array();
-  $modules = array('uc_paypal', 'test_gateway', 'uc_credit');
+  $modules = array('uc_paypal', 'uc_authorizenet', 'test_gateway', 'uc_credit');
   foreach ($modules as $module) {
     if (module_exists($module)) {
       module_load_include('inc', 'uc_recurring', '/modules/uc_recurring.'. $module);
