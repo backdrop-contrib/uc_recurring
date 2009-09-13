@@ -305,6 +305,22 @@ function uc_recurring_product_feature() {
   return $features;
 }
 
+/**
+ * Implementation of hook_uc_checkout_complete().
+ *
+ * This function is require to complete recurring orders for anonymous
+ * purchases as the uid is not set until the order has completed checkout.
+ */
+function uc_recurring_uc_checkout_complete($order, $account) {
+  $fees = uc_recurring_get_fees($order);
+  foreach ($fees as $fee) {
+    if ($fee->uid == 0) { // check for anonymous uid
+      $fee->uid = $order->uid;
+      uc_recurring_fee_user_save($fee);
+    }
+  }
+}
+
 /*******************************************************************************
  * API functions
  ******************************************************************************/
