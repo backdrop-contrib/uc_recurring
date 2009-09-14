@@ -13,10 +13,15 @@ function uc_recurring_test_gateway_recurring_info() {
   $items['test_gateway'] = array(
     'name' => t('Test Gateway'),
     'payment method' => 'credit',
+    'module' => 'uc_recurring',
     'fee handler' => 'test_gateway',
-    'module' => 'UC recurring',
-    'renew' => 'uc_recurring_test_gateway_renew',
-    'process' => 'uc_recurring_test_gateway_process',
+    'renew callback' => 'uc_recurring_test_gateway_renew',
+    'process callback' => 'uc_recurring_test_gateway_process',
+    'menu' => array(
+      'charge' => UC_RECURRING_MENU_DEFAULT,
+      'edit'   => UC_RECURRING_MENU_DEFAULT,
+      'cancel' => UC_RECURRING_MENU_DEFAULT,
+    ), // Use the default user operation defined in uc_recurring.
   );
   return $items;
 }
@@ -73,11 +78,11 @@ function uc_recurring_test_gateway_renew($order, &$fee) {
   uc_credit_cache('save', $fee->data['payment_details'], FALSE);
 
   // Run the charge.
-  $result = test_gateway_charge($fee->order_id, $fee->fee_amount, NULL);
+  $result = test_gateway_charge($order->order_id, $fee->fee_amount, NULL);
 
   // Handle the result.
   if ($result['success'] === TRUE) {
-    uc_payment_enter($fee->order_id, 'credit', $fee->fee_amount, 0, $result['data'], t('Recurring fee payment.') .'<br />'. $result['comment']);
+    uc_payment_enter($order->order_id, 'credit', $fee->fee_amount, 0, $result['data'], t('Recurring fee payment.') .'<br />'. $result['comment']);
   }
 
   return $result['success'];

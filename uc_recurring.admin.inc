@@ -115,27 +115,32 @@ function uc_recurring_admin_filter_form_submit($form, &$form_state) {
  * @param $uid
  * @return unknown_type
  */
-function uc_recurring_admin_charge_form($form_state, $rfid) {
+function uc_recurring_admin_charge_form($form_state, $rfid, $fee_handler) {
   $fee = uc_recurring_fee_user_load($rfid);
-  $context = array(
-    'revision' => 'formatted-original',
-    'location' => 'recurring-charge-form',
-  );
-  $form['rfid'] = array(
-    '#type' => 'hidden',
-    '#value' => $fee->rfid
-  );
-
-
-  $form['message'] = array(
-    '#value' => '<div>'. t('Are you sure you want to charge the customer @amount at this time?', array('@amount' => uc_price($fee->fee_amount, $context))) .'</div>',
-  );
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Process Renewal'),
-    '#suffix' => l(t('Cancel'), uc_referer_uri()),
-  );
-  return $form;
+  if ($fee->fee_handler == $fee_handler) {
+    $context = array(
+      'revision' => 'formatted-original',
+      'location' => 'recurring-charge-form',
+    );
+    $form['rfid'] = array(
+      '#type' => 'hidden',
+      '#value' => $fee->rfid
+    );
+  
+  
+    $form['message'] = array(
+      '#value' => '<div>'. t('Are you sure you want to charge the customer @amount at this time?', array('@amount' => uc_price($fee->fee_amount, $context))) .'</div>',
+    );
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Process Renewal'),
+      '#suffix' => l(t('Cancel'), uc_referer_uri()),
+    );
+    return $form;
+  }
+  else {
+    drupal_set_message(t('Invalid fee handler was given, try again from the operations for this <a href="@url">recurring fee</a>, if problem persists contact the site administrator.', array('@url' => url(uc_referer_uri()))), 'error');
+  }
 }
 
 function uc_recurring_admin_charge_form_submit($form, &$form_state) {
@@ -156,85 +161,88 @@ function uc_recurring_admin_charge_form_submit($form, &$form_state) {
 /**
  * Let an admin edit a recurring fee.
  */
-function uc_recurring_admin_edit_form() {
-  drupal_add_css(drupal_get_path('module', 'uc_recurring') .'/uc_recurring.css');
-  drupal_add_js(drupal_get_path('module', 'uc_recurring') .'/uc_recurring.js', 'module');
-
-  $item = menu_get_item();
-
-  $fee = uc_recurring_fee_user_load(arg(4));
-  list($fee->regular_interval_value, $fee->regular_interval_unit) = explode(' ', $fee->regular_interval);
-
-  $form['fee_amount'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Recurring fee amount'),
-    '#description' => t('Charge this amount each billing period.'),
-    '#default_value' => $fee->fee_amount,
-    '#size' => 16,
-    '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),
-    '#field_suffix' => variable_get('uc_sign_after_amount', FALSE) ? variable_get('uc_currency_sign', '$') : '',
-  );
-
-  $form['num_interval'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Number of billing periods'),
-    '#collapsible' => FALSE,
-    '#description' => t('Specify the time to wait to start charging the recurring fee after checkout.'),
-  );
-
-  if ($fee->remaining_intervals < 0) {
-    $attributes['checked'] = 'checked';
+function uc_recurring_admin_edit_form($form_state, $rfid, $fee_handler) {
+  $fee = uc_recurring_fee_user_load($rfid);
+  if ($fee->fee_handler == $fee_handler) {
+    drupal_add_css(drupal_get_path('module', 'uc_recurring') .'/uc_recurring.css');
+    drupal_add_js(drupal_get_path('module', 'uc_recurring') .'/uc_recurring.js', 'module');
+  
+    list($fee->regular_interval_value, $fee->regular_interval_unit) = explode(' ', $fee->regular_interval);
+  
+    $form['fee_amount'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Recurring fee amount'),
+      '#description' => t('Charge this amount each billing period.'),
+      '#default_value' => $fee->fee_amount,
+      '#size' => 16,
+      '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),
+      '#field_suffix' => variable_get('uc_sign_after_amount', FALSE) ? variable_get('uc_currency_sign', '$') : '',
+    );
+  
+    $form['num_interval'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Number of billing periods'),
+      '#collapsible' => FALSE,
+      '#description' => t('Specify the time to wait to start charging the recurring fee after checkout.'),
+    );
+  
+    if ($fee->remaining_intervals < 0) {
+      $attributes['checked'] = 'checked';
+    }
+    $form['num_interval']['unlimited_intervals'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Unlimited rebillings.'),
+      '#attributes' => $attributes,
+    );
+    $form['num_interval']['number_intervals'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Remaining billing periods'),
+      '#description' => t('Specify how many more times to charge the fee.'),
+      '#size' => 16,
+      '#default_value' => $fee->remaining_intervals < 0 ? '' : $fee->remaining_intervals,
+      '#attributes' => $fee->remaining_intervals < 0 ? array('disabled' => 'disabled') : array(),
+    );
+  
+    $form['regular'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Regular interval'),
+      '#collapsible' => FALSE,
+      '#description' => t('Modify the length of the billing period for this fee. Changing this value will reset the timer for the next charge. You can also charge the fee manually to collect payment ahead of time and reset the interval.'),
+      '#attributes' => array('class' => 'interval-fieldset'),
+    );
+    $form['regular']['regular_interval_value'] = array(
+      '#type' => 'select',
+      '#options' => drupal_map_assoc(uc_range(1, 52)),
+      '#default_value' => $fee->regular_interval_value,
+    );
+    $form['regular']['regular_interval_unit'] = array(
+      '#type' => 'select',
+      '#options' => array(
+        'days' => t('day(s)'),
+        'weeks' => t('week(s)'),
+        'months' => t('month(s)'),
+        'years' => t('year(s)'),
+      ),
+      '#default_value' => $fee->regular_interval_unit,
+    );
+  
+    $form['reset_next_charge'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Reset the next charge timer upon form submission using the specified interval.'),
+      '#description' => t('Checking this .'),
+    );
+  
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Submit'),
+      '#suffix' => l(t('Cancel'), uc_referer_uri()),
+    );
+  
+    return $form;
   }
-  $form['num_interval']['unlimited_intervals'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Unlimited rebillings.'),
-    '#attributes' => $attributes,
-  );
-  $form['num_interval']['number_intervals'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Remaining billing periods'),
-    '#description' => t('Specify how many more times to charge the fee.'),
-    '#size' => 16,
-    '#default_value' => $fee->remaining_intervals < 0 ? '' : $fee->remaining_intervals,
-    '#attributes' => $fee->remaining_intervals < 0 ? array('disabled' => 'disabled') : array(),
-  );
-
-  $form['regular'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Regular interval'),
-    '#collapsible' => FALSE,
-    '#description' => t('Modify the length of the billing period for this fee. Changing this value will reset the timer for the next charge. You can also charge the fee manually to collect payment ahead of time and reset the interval.'),
-    '#attributes' => array('class' => 'interval-fieldset'),
-  );
-  $form['regular']['regular_interval_value'] = array(
-    '#type' => 'select',
-    '#options' => drupal_map_assoc(uc_range(1, 52)),
-    '#default_value' => $fee->regular_interval_value,
-  );
-  $form['regular']['regular_interval_unit'] = array(
-    '#type' => 'select',
-    '#options' => array(
-      'days' => t('day(s)'),
-      'weeks' => t('week(s)'),
-      'months' => t('month(s)'),
-      'years' => t('year(s)'),
-    ),
-    '#default_value' => $fee->regular_interval_unit,
-  );
-
-  $form['reset_next_charge'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Reset the next charge timer upon form submission using the specified interval.'),
-    '#description' => t('Checking this .'),
-  );
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Submit'),
-    '#suffix' => l(t('Cancel'), uc_referer_uri()),
-  );
-
-  return $form;
+  else {
+    drupal_set_message(t('Invalid fee handler was given, try again from the operations for this <a href="@url">recurring fee</a>, if problem persists contact the site administrator.', array('@url' => url(uc_referer_uri()))), 'error');
+  }
 }
 
 function uc_recurring_admin_edit_form_validate($form, &$form_state) {
@@ -263,44 +271,15 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
 
   drupal_set_message(t('The changes to the fee have been saved.'));
 
-  // fee was already cancelled and now has been resumed, add a comment to the order
+  // Fee was already cancelled and now has been resumed, add a comment to the order.
   if ($fee->remaining_intervals == 0 && $form_state['values']['number_intervals'] != 0) {
     uc_order_comment_save($fee->order_id, $user->uid, t('<a href="@user-link">@user</a> resumed the recurring fee <a href="@fee-link">@fee</a>.', array('@user-link' => url('user/'. $user->uid), '@user' => $user->name, '@fee-link' => url('admin/store/orders/recurring/view/fee/'. $rfid), '@fee'=> $rfid)));
   }
-  // if the number of intervals set to zero then also call cancel
+  // If the number of intervals set to zero then also call cancel.
   if ($fee->remaining_intervals != 0 && $form_state['values']['number_intervals'] == 0) {
     uc_recurring_fee_cancel($rfid, $fee);
   }
 
   $form_state['redirect'] = 'admin/store/orders/recurring/view/fee/'. arg(4);
-}
-
-/**
- * Confirm a recurring fee cancellation.
- */
-function uc_recurring_admin_cancel_form() {
-  $item = menu_get_item();
-  $form['rfid'] = array(
-    '#type' => 'hidden',
-    '#value' => $item['map'][4],
-  );
-
-  $form['message'] = array(
-    '#value' => '<div>Are you sure you want to cancel this recurring fee?</div>',
-  );
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Yes, cancel this recurring fee.'),
-    '#suffix' => l(t('No, go back to the previous page'), uc_referer_uri()),
-  );
-  return $form;
-}
-
-function uc_recurring_admin_cancel_form_submit($form, &$form_state) {
-  uc_recurring_fee_cancel($form_state['values']['rfid']);
-  drupal_set_message(t('Recurring fee @fee cancelled.', array('@fee' => $rfid)));
-
-  $form_state['redirect'] = 'admin/store/orders/recurring/view/fee/'. $form_state['values']['rfid'];
 }
 

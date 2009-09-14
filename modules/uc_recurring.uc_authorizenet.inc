@@ -16,8 +16,13 @@ function uc_recurring_uc_authorizenet_recurring_info() {
       'payment method' => 'credit',
       'module' => 'uc_recurring',
       'fee handler' => 'authorizenet',
-      'renew' => 'uc_recurring_authorizenet_cim_renew',
-      'process' => 'uc_recurring_authorizenet_cim_process',
+      'renew callback' => 'uc_recurring_authorizenet_cim_renew',
+      'process callback' => 'uc_recurring_authorizenet_cim_process',
+      'menu' => array(
+        'charge' => UC_RECURRING_MENU_DEFAULT,
+        'edit'   => UC_RECURRING_MENU_DEFAULT,
+        'cancel' => UC_RECURRING_MENU_DEFAULT,
+      ), // Use the default user operation defined in uc_recurring.
     );
   }
   return $items;
@@ -34,10 +39,13 @@ function uc_recurring_uc_authorizenet_recurring_info() {
  *   TRUE if recurring fee setup
  */
 function uc_recurring_authorizenet_cim_process($order, &$fee) {
-  $data = array(
-    'txn_type' => UC_CREDIT_REFERENCE_SET,
-  );
-  return uc_authorizenet_charge($order->order_id, $order->total_amount, $data);
+  if (!variable_get('uc_authnet_cim_profile', FALSE)) {
+    $data = array(
+      'txn_type' => UC_CREDIT_REFERENCE_SET,
+    );
+    return uc_authorizenet_charge($order->order_id, $order->total_amount, $data);
+  }
+  return TRUE;
 }
 
 /**

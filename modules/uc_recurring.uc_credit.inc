@@ -14,10 +14,11 @@ function uc_recurring_uc_credit_recurring_info() {
   $items['credit'] = array(
     'name' => t('Credit card'),
     'payment method' => 'credit',
+    'module' => 'uc_recurring',
     'fee handler' => $gateway,
-    'module' => 'UC recurring',
-    'process' => 'uc_recurring_uc_credit',
-    'renew' => 'uc_recurring_uc_credit',
+    'process callback' => 'uc_recurring_uc_credit',
+    'renew callback' => 'uc_recurring_uc_credit',
+    'cancel callback' => 'uc_recurring_uc_credit',
   );
   return $items;
 }
