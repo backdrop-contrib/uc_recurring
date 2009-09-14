@@ -446,7 +446,7 @@ function uc_recurring_renew($fee) {
 
   // Add a flag that this order is a recurring fee order, so it won't be
   // processed by uc_recurring_process_order().
-  $product->recurring_fee = TRUE;
+  $product->data['recurring_fee'] = TRUE;
   $new_order->products = array($product);
 
   // Give other modules a chance to modify the new order before processing
@@ -819,7 +819,7 @@ function uc_recurring_get_recurring_products_in_order($order) {
         continue;
       }
       // Don't process new orders that were created by uc_recurring_renew().
-      if (empty($value->recurring_fee)) {
+      if (empty($value->data['recurring_fee'])) {
         // Get all the models of all products.
         $products[$value->nid][] = array('model' => $value->model, 'product' => $value);
         $nids[] = $value->nid;
