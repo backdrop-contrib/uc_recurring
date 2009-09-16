@@ -326,7 +326,7 @@ function uc_recurring_product_feature() {
     'id' => 'recurring',
     'title' => t('Recurring fee'),
     'callback' => 'uc_recurring_feature_form',
-    'delete' => 'uc_recurring_fee_delete',
+    'delete' => 'uc_recurring_fee_product_delete',
     'settings' => 'uc_recurring_settings_form',
   );
 
