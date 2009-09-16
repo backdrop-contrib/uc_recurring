@@ -53,6 +53,7 @@ function uc_recurring_uc_authorizenet_recurring_info() {
  *   TRUE if recurring fee setup
  */
 function uc_recurring_authorizenet_cim_process($order, &$fee) {
+  $fee->fee_handler = 'authorizenet_cim';
   if (!variable_get('uc_authnet_cim_profile', FALSE)) {
     $data = array(
       'txn_type' => UC_CREDIT_REFERENCE_SET,
@@ -94,6 +95,7 @@ function uc_recurring_authorizenet_cim_renew($order, &$fee) {
  *   TRUE if recurring fee setup
  */
 function uc_recurring_authorizenet_arb_process($order, &$fee) {
+  $fee->fee_handler = 'authorizenet_arb';
   // We can't just call the existing arb function in ubercart as that would try
   // and setup thing that uc_recurring does now for all recurring fees.
   // return uc_authorizenet_arb_create($order, $fee);
