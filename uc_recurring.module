@@ -482,6 +482,7 @@ function uc_recurring_renew($fee) {
   uc_order_update_status($new_id, 'processing');
 
   if (uc_recurring_invoke($fee->fee_handler, 'renew callback', array($new_order, &$fee))) {
+    uc_order_save($new_order);
 
     // Add a comment in the old and new order history.
     uc_order_comment_save($old_id, $user->uid, t('New recurring fee processed, new order is <a href="@store-orders">@order_id</a>.', array('@store-orders' => url('admin/store/orders/'.$new_id), '@order_id' => $new_id)));
@@ -495,7 +496,6 @@ function uc_recurring_renew($fee) {
     uc_recurring_fee_user_save($fee);
 
     uc_order_update_status($new_id, 'completed');
-    uc_order_save($new_order);
     // Return the new order ID.
     return $new_id;
   }
