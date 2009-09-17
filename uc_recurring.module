@@ -86,7 +86,6 @@ function uc_recurring_menu() {
             'title' => $path, 
             'page callback' => 'drupal_get_form', 
             'access callback' => 'uc_recurring_user_access',
-            'access arguments' => array(1),
             'type' => MENU_CALLBACK,
             'file path' => drupal_get_path('module', $value['module']),
           );
@@ -96,6 +95,7 @@ function uc_recurring_menu() {
           $items[$admin_path]['page arguments'][] = 6; // Add fee_handler as an arguments.
 
           $user_path = 'user/%user/recurring/%/'. $path .'/'. $value['fee handler'];
+          $default_menu_fields['access arguments'] = array(1);
           $items[$user_path] = array_merge($default_menu_fields, $menu_item);
           $items[$user_path]['page arguments'][] = 3; // Add rfid as an arguments.
           $items[$user_path]['page arguments'][] = 5; // Add fee_handler as an arguments.
@@ -482,7 +482,6 @@ function uc_recurring_renew($fee) {
   uc_order_update_status($new_id, 'processing');
 
   if (uc_recurring_invoke($fee->fee_handler, 'renew callback', array($new_order, &$fee))) {
-    uc_order_save($new_order);
 
     // Add a comment in the old and new order history.
     uc_order_comment_save($old_id, $user->uid, t('New recurring fee processed, new order is <a href="@store-orders">@order_id</a>.', array('@store-orders' => url('admin/store/orders/'.$new_id), '@order_id' => $new_id)));
@@ -494,6 +493,9 @@ function uc_recurring_renew($fee) {
     $fee->data['recurring orders'][$new_id] = $new_id;
     // Save the fee object.
     uc_recurring_fee_user_save($fee);
+
+    uc_order_update_status($new_id, 'completed');
+    uc_order_save($new_order);
     // Return the new order ID.
     return $new_id;
   }
@@ -882,8 +884,11 @@ function uc_recurring_get_recurring_products_in_order($order) {
  * @return
  *   True if user has permission to access menu item.
  */
-function uc_recurring_user_access($account) {
+function uc_recurring_user_access($account = NULL) {
   global $user;
+  if ($account === NULL) {
+    return user_access('administer recurring fees');
+  }
   return (user_access('administer recurring fees') || (user_access('view own recurring fees') && $user->uid == $account->uid)) && uc_recurring_get_user_fees($account->uid);
 }
 
