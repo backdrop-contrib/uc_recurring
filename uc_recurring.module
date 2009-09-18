@@ -451,11 +451,12 @@ function uc_recurring_renew($fee) {
   $old_id = $order->order_id;
 
   // Create a new order by cloning the current order and replacing order ID.
-  $new_order = uc_order_new($order->uid, 'in_checkout');
+  $new_order = uc_order_new($order->uid, 'processing');
   $new_id = $new_order->order_id;
 
   $new_order = $order;
   $new_order->order_id = $new_id;
+  $new_order->order_status = 'processing';
 
   // Set a single product - the recurring fee.
   $product = new stdClass();
@@ -479,10 +480,12 @@ function uc_recurring_renew($fee) {
 
   // Give other modules a chance to modify the new order before processing
   module_invoke_all('recurring_renew', $new_order, $fee);
-  uc_order_update_status($new_id, 'processing');
+  uc_order_save($new_order);
+  uc_order_update_status($new_id, 'pending');
 
+  $new_order = uc_order_load($new_id);
   if (uc_recurring_invoke($fee->fee_handler, 'renew callback', array($new_order, &$fee))) {
-    uc_order_save($new_order);
+    $new_order = uc_order_load($new_id);
 
     // Add a comment in the old and new order history.
     uc_order_comment_save($old_id, $user->uid, t('New recurring fee processed, new order is <a href="@store-orders">@order_id</a>.', array('@store-orders' => url('admin/store/orders/'.$new_id), '@order_id' => $new_id)));
@@ -495,7 +498,13 @@ function uc_recurring_renew($fee) {
     // Save the fee object.
     uc_recurring_fee_user_save($fee);
 
-    uc_order_update_status($new_id, 'completed');
+    // TODO: with standard orders a CA is triggered on checkout which changes 
+    // the status to completed, this is probably what we need to do here.
+    // For the moment when we have received payment we will manually change the
+    // status to completed. This change should happen in the CA.
+    if ($new_order->order_status == 'payment_received') {
+      uc_order_update_status($new_id, 'completed');
+    }
     // Return the new order ID.
     return $new_id;
   }
