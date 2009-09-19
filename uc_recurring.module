@@ -1012,7 +1012,7 @@ function uc_recurring_feature_form($form_state, $node, $feature) {
     '#type' => 'fieldset',
     '#title' => t('Number of billing periods'),
     '#collapsible' => FALSE,
-    '#description' => t('Specify the time to wait to start charging the recurring fee after checkout.'),
+    '#description' => t('Specify how many times the recurring fee will be charged.'),
   );
 
   if ($product->number_intervals < 0) {
@@ -1026,7 +1026,6 @@ function uc_recurring_feature_form($form_state, $node, $feature) {
   $form['num_interval']['number_intervals'] = array(
     '#type' => 'textfield',
     '#title' => t('Number of billing periods'),
-    '#description' => t('Specify how many times the recurring fee will be charged.'),
     '#size' => 16,
     '#default_value' => $product->number_intervals < 0 ? '' : $product->number_intervals,
     '#attributes' => $product->number_intervals < 0 ? array('disabled' => 'disabled') : array(),

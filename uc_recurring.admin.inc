@@ -183,7 +183,7 @@ function uc_recurring_admin_edit_form($form_state, $rfid, $fee_handler) {
       '#type' => 'fieldset',
       '#title' => t('Number of billing periods'),
       '#collapsible' => FALSE,
-      '#description' => t('Specify the time to wait to start charging the recurring fee after checkout.'),
+      '#description' => t('Specify how many more recurring fees will be charged.'),
     );
   
     if ($fee->remaining_intervals < 0) {
@@ -197,7 +197,6 @@ function uc_recurring_admin_edit_form($form_state, $rfid, $fee_handler) {
     $form['num_interval']['number_intervals'] = array(
       '#type' => 'textfield',
       '#title' => t('Remaining billing periods'),
-      '#description' => t('Specify how many more times to charge the fee.'),
       '#size' => 16,
       '#default_value' => $fee->remaining_intervals < 0 ? '' : $fee->remaining_intervals,
       '#attributes' => $fee->remaining_intervals < 0 ? array('disabled' => 'disabled') : array(),
