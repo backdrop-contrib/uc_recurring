@@ -312,7 +312,7 @@ function uc_recurring_order($op, &$arg1, $arg2) {
       $fees = uc_recurring_get_fees($arg1);
       foreach ($fees as $fee) {
         uc_recurring_fee_cancel($fee->rfid, $fee);
-        uc_recurring_fee_user_delete($rfid);
+        uc_recurring_fee_user_delete($fee->rfid);
       }
       break; 
   }
