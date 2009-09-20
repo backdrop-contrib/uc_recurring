@@ -747,7 +747,7 @@ function uc_recurring_fee_cancel($rfid, $fee = NULL) {
   // Add a timestamp to the user cancellation.
   $fee->data['cancel'] = time();
   uc_recurring_fee_user_save($fee);
-  uc_recurring_invoke($fee->handler, 'cancel callback', array($fee));
+  uc_recurring_invoke($fee->fee_handler, 'cancel callback', array($fee));
 
   // Add comment about cancellation in the product.
   uc_order_comment_save($fee->order_id, $user->uid, t('<a href="@user-link">@user</a> cancelled recurring fee <a href="@fee-link">@fee</a>. There were @remaining fee(s) still pending.', array('@user-link' => url('user/'. $user->uid), '@user' => $user->name, '@fee-link' => url('admin/store/orders/recurring/view/fee/'. $rfid), '@fee'=> $rfid, '@remaining' => $remaining < 0 ? 'unlimited' : $remaining)));
