@@ -30,6 +30,13 @@ define('UC_RECURRING_MENU_DEFAULT', 1);
  ******************************************************************************/
 
 /**
+ * Implementation of hook_init().
+ */
+function uc_recurring_init() {
+  module_load_include('inc', 'uc_recurring', 'uc_recurring.ca');
+}
+
+/**
  * Implementation of hook_menu().
  */
 function uc_recurring_menu() {
@@ -285,6 +292,47 @@ function uc_recurring_user($op, &$edit, &$account, $category = NULL) {
 }
 
 /**
+ * Implementation of hook_token_values(). (token.module)
+ */
+function uc_recurring_token_values($type, $object = NULL) {
+  $values = array();
+  switch ($type) {
+    case 'recurring_fee':
+      $fee = $object;
+      
+      $values['recurring-fee-id'] = $fee->rfid;
+      $values['next-charge'] = format_date($fee->next_charge);
+      $values['fee-amount'] = $fee->fee_amount;
+      $values['fee-title'] = $fee->fee_title;
+      $values['charged-intervals'] = $fee->charged_intervals;
+      $values['remaining-intervals'] = $fee->remaining_intervals < 0 ? t('untill cancelled') : $fee->remaining_intervals;
+      $values['renewal-attempts'] = $fee->attempts;
+      $values['recurring-link'] = url('user/'. $fee->uid .'recurring-fees', array('absolute' => TRUE));
+      break;
+  }
+
+  return $values;
+}
+
+/**
+ * Implementation of hook_token_list(). (token.module)
+ */
+function uc_recurring_token_list($type = 'all') {
+  $tokens = array();
+  if ($type == 'recurring_fee' || $type == 'ubercart' || $type == 'all') {
+    $tokens['recurring_fee']['recurring-fee-id'] = t('The recurring fee ID.');
+    $tokens['recurring_fee']['next-charge'] = t('The date and time when the next charge is due to be processed.');
+    $tokens['recurring_fee']['fee-amount'] = t('The recurring fee due on the next charge.');
+    $tokens['recurring_fee']['fee-title'] = t('The product title used as orders for this recurring fee.');
+    $tokens['recurring_fee']['charged-intervals'] = t('The number of recurring intervals due left in subscription.');
+    $tokens['recurring_fee']['remaining-intervals'] = t('The number of recurring intervals due left in subscription.');
+    $tokens['recurring_fee']['renewal-attempts'] = t('The number of attempts to try and renew this fee. ');
+  }
+
+  return $tokens;
+}
+
+/**
  * Display users recurring fees.
  */
 function uc_recurring_user_fees($user) {
@@ -347,6 +395,22 @@ function uc_recurring_uc_checkout_complete($order, $account) {
       uc_recurring_fee_user_save($fee);
     }
   }
+}
+
+/**
+ * Implementation of hook_uc_message().
+ */
+function uc_recurring_uc_message() {
+  $messages['uc_recurring_renewal_completed_subject'] = t('[store-name]: [fee-title]');
+  $messages['uc_recurring_renewal_completed_message'] = t("[order-first-name] [order-last-name], \n\n[fee-title] has been processed, [order-link], at [store-name].\n\nThanks again, \n\n[store-name]\n[site-slogan]");
+
+  $messages['uc_recurring_renewal_failed_subject'] = t('[store-name]: [fee-title] failed');
+  $messages['uc_recurring_renewal_failed_message'] = t("[order-first-name] [order-last-name], \n\nWe have failed to process [fee-title], at [store-name].\n\nWe will re-attempt to process this fee again on [next-charge]. If your payment details have changed you can update them at [recurring-link].\n\nThanks again, \n\n[store-name]\n[site-slogan]");
+
+  $messages['uc_recurring_renewal_expired_subject'] = t('[store-name]: [fee-title] expired');
+  $messages['uc_recurring_renewal_expired_message'] = t("[order-first-name] [order-last-name], \n\n[fee-title] has expired, [order-link], at [store-name].\n\nYou can purchase a new order from [store-url].\n\nThanks again, \n\n[store-name]\n[site-slogan]");
+
+  return $messages;
 }
 
 /*******************************************************************************
@@ -498,13 +562,8 @@ function uc_recurring_renew($fee) {
     // Save the fee object.
     uc_recurring_fee_user_save($fee);
 
-    // TODO: with standard orders a CA is triggered on checkout which changes 
-    // the status to completed, this is probably what we need to do here.
-    // For the moment when we have received payment we will manually change the
-    // status to completed. This change should happen in the CA.
-    if ($new_order->order_status == 'payment_received') {
-      uc_order_update_status($new_id, 'completed');
-    }
+    ca_pull_trigger('uc_recurring_renewal_complete', $order, $fee);
+
     // Return the new order ID.
     return $new_id;
   }
@@ -517,6 +576,8 @@ function uc_recurring_renew($fee) {
 
     module_invoke_all('recurring_api', 'fail', $fee);
     uc_order_delete($new_id);
+
+    ca_pull_trigger('uc_recurring_order_renewal_failed', $order, $fee);
   }
   return FALSE;
 
@@ -1249,7 +1310,11 @@ function uc_recurring_set_intervals(&$fee) {
   $fee->next_charge = strtotime('+'. $fee->regular_interval);
   if ($fee->remaining_intervals > 0) {
     $fee->remaining_intervals--;
-  }  
+  }
+  else {
+    $order = uc_order_load($fee->order_id);
+    ca_pull_trigger('uc_recurring_order_renewal_expired', $order, $fee);
+  }
   $fee->charged_intervals++;
   $fee->attempts = 0;
 }
