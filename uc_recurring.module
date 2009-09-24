@@ -472,7 +472,7 @@ function uc_recurring_process_order($order) {
       $fee->attempts = 0;
       $fee->pfid = $product_fee->pfid;
       $fee->order_product_id = $order_product_id;
-      $fee->own_handler = !empty($product_fee->own_handler);
+      $fee->own_handler = !empty($fee_handler['own handler']);
 
       // Let the implementing module process.
       if (uc_recurring_invoke($fee->fee_handler, 'process callback', array($order, &$fee))) {
