@@ -82,7 +82,7 @@ class ucRecurringTestCase extends UbercartTestCase {
     $this->drupalPost('node/'.$product->nid, array(), t('Add to cart'));
     $this->assertRaw($product->title, t('The product name has been displayed on the cart page.'));
     $this->assertRaw('added to', t('The product name has been displayed on the cart page.'));
-    $this->checkout();
+    $this->checkout(array('panes[delivery][delivery_postal_code]' => '12345', 'panes[billing][billing_postal_code]' => '12345'));
     $this->assertRaw('Your order is complete!', t('"Your order is complete!" appears on the thank you page.'));
     $order_id = $this->lastCreatedOrderId();
     if ($order_id > $last_order_id) {
@@ -312,10 +312,11 @@ class ucRecurringIntegrationTestCase extends ucRecurringTestCase {
     $this->drupalLogout();
 
     $order_id = $this->placeOrderWithRecurringFee($product);
-    $order = uc_order_load($this->lastCreatedOrderId());
-    $this->assertEqual('payment_received', $order->order_status, t('Payment Received for order.'));
     if ($order_id) {
       $fee = $this->getSingleRecurringFeeFromOrder($order_id);
+
+      $order = uc_order_load($order_id);
+      $this->assertEqual('completed', $order->order_status, t('Payment Received for order.'));
 
       // test renewal on successful payment processing
       $this->processRecurringFee($fee->rfid, 1);
@@ -325,6 +326,12 @@ class ucRecurringIntegrationTestCase extends ucRecurringTestCase {
       // order should now be completed
 
       // test renewal on failed payment processing
+      global $gateway_status;
+      $gateway_status = FALSE;
+      $current_order_id = $this->lastCreatedOrderId();
+      $this->processRecurringFee($fee->rfid, 1);
+      $order = uc_order_load($this->lastCreatedOrderId());
+      $this->assertEqual($order->order_id, $current_order_id, t('no new order created on failed payment'));
     }
   }
 }

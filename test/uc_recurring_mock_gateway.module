@@ -26,9 +26,6 @@ function uc_recurring_mock_gateway_payment_method() {
   return $methods;
 }
 
-function uc_recurring_method_mock_gateway($op, $arg1) {
-
-}
 
 /**
  * Implements hook_order
@@ -52,8 +49,8 @@ function uc_recurring_mock_gateway_recurring_info() {
     'payment method' => 'mock_gateway',
     'fee handler' => 'mock_gateway',
     'module' => 'UC recurring',
-    'renew' => 'uc_recurring_mock_gateway_renew',
-    'process' => 'uc_recurring_mock_gateway_process',
+    'renew callback' => 'uc_recurring_mock_gateway_renew',
+    'process callback' => 'uc_recurring_mock_gateway_process',
   );
   return $items;
 }
@@ -69,7 +66,10 @@ function uc_recurring_mock_gateway_process($order, &$fee) {
  * Handle recurring fee renew callback
  */
 function uc_recurring_mock_gateway_renew($order, &$fee) {
-  uc_payment_enter($fee->order_id, 'mock_gateway', $fee->fee_amount, 0, NULL, t('Recurring fee payment.'));
-  return TRUE;
+  global $gateway_status;
+  if ($gateway_status) {
+    uc_payment_enter($fee->order_id, 'mock_gateway', $fee->fee_amount, 0, NULL, t('Recurring fee payment.'));
+  }
+  return $gateway_status;
 }
 

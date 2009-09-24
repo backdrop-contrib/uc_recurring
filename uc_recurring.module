@@ -569,7 +569,9 @@ function uc_recurring_renew($fee) {
   }
   else {
     // Charging failed.
-    uc_recurring_process_extensions($order, $fee);
+    if (!$fee->own_handler) {
+      uc_recurring_process_extensions($fee);
+    }
 
     uc_order_comment_save($fee->order_id, $user->uid, t('Error: Recurring fee <a href="@orders-recurring-view">@fee</a> for product @model failed.', array('@orders-recurring-view' => url('admin/store/orders/recurring/view/fee/'. $fee->rfid), '@fee' => $fee->rfid, '@model' => $fee->data['model'])));
     watchdog('uc_recurring', 'Failed to capture recurring fee of @amount for product @model on order @order_id.', array('@amount' => $fee->fee_amount, '@model' => $fee->data['model'], '@order_id' => $fee->order_id), WATCHDOG_ERROR, l(t('order !order_id', array('!order_id' => $fee->order_id)), 'admin/store/orders/'. $fee->order_id));
@@ -580,14 +582,93 @@ function uc_recurring_renew($fee) {
     ca_pull_trigger('uc_recurring_order_renewal_failed', $order, $fee);
   }
   return FALSE;
-
 }
 
 /**
- * TODO: Handle extensions when a recurring payment was unsuccessful.
+ * Handle extensions when a recurring payment was unsuccessful.
+ *
+ * @param $fee
+ *   The fee object.
  */
-function uc_recurring_process_extensions($order, $fee) {
+function uc_recurring_process_extensions(&$fee) {
+  $extend_seconds = uc_recurring_get_extension($fee->pfid, $fee->attempts);
+  uc_recurring_extend_fee($fee, $extend_seconds);
+}
 
+/**
+ * Handle extensions when a recurring payment was unsuccessful.
+ *
+ * @param $fee
+ *   The fee object.
+ * @param $extend_seconds
+ *   The number of seconds to extend the order by.
+ */
+function uc_recurring_extend_fee(&$fee, $extend_seconds) {
+  $fee->attempts++;
+  $fee->next_charge += $extend_seconds;
+  uc_recurring_fee_user_save($fee);
+}
+
+/**
+ * Returns the time to extend for a payment attempt.
+ *
+ * @param $fee_id
+ *   The id of the recurring fee to get extensions.
+ * @param $attempt
+ *   The attempt number to return.
+ */
+function uc_recurring_get_extension($fee_id, $attempt) {
+  $result = db_query("SELECT * FROM {uc_recurring_extensions} WHERE (pfid = %d OR pfid IS NULL) AND rebill_attempt = %d ORDER BY pfid DESC", $fee_id, $attempt);
+  $extend_seconds = 0;
+  if ($result != FALSE) {
+    $extension = db_fetch_object($result);
+    $extend_seconds = $extension->time_to_extend;
+  }
+  return $extend_seconds;
+}
+
+/**
+ * Retuns a list of all the extensions for a specific recurring fee. 
+ *
+ * @param $fee_id
+ *   The id of the recurring fee to get extensions.
+ */
+function uc_recurring_get_extension_list($fee_id = NULL) {
+  if ($fee_id === NULL) {
+    $result = db_query("SELECT * FROM {uc_recurring_extensions} WHERE pfid IS NULL ORDER BY pfid DESC, rebill_attempt ASC");
+  }
+  else {
+    $result = db_query("SELECT * FROM {uc_recurring_extensions} WHERE (pfid = %d OR pfid IS NULL) ORDER BY pfid DESC, rebill_attempt ASC", $fee_id);
+  }
+
+  while ($extension = db_fetch_object($result)) {
+    if (!isset($extensions[$extension->rebill_attempt])) {
+      $extensions[$extension->rebill_attempt] = $extension;
+    }
+  }
+  return $extensions;
+}
+
+/**
+ * Save a set of extensions.
+ *
+ * @param $extensions
+ *   String of comma seperated day values to extend the extension.
+ * @param $extend_seconds
+ *   The number of seconds to extend the order by.
+ */
+function uc_recurring_save_extensions($extensions, $fee_id = NULL) {
+  db_query("DELETE FROM {uc_recurring_extensions} WHERE pfid IS NULL");
+
+  $extend = explode(',', $extensions);
+  $count = 1;
+  foreach($extend as $days_to_extend) {
+    $seconds = $days_to_extend * (24*60*60);
+    db_query("INSERT INTO {uc_recurring_extensions} (rebill_attempt, time_to_extend) VALUES (%d, %d)", $count, $seconds);
+    $count++;
+  }
+  // Last extension set extension to 0 to expire.
+  db_query("INSERT INTO {uc_recurring_extensions} (rebill_attempt, time_to_extend) VALUES (%d, 0)", $count);
 }
 
 /**
@@ -1197,22 +1278,35 @@ function uc_recurring_settings_form() {
     '#title' => t('Extensions'),
     '#description' => t('Configure how many time and at what intervals to attempt rebilling on a failed recurring payment.'),
   );
-  $result = db_query("SELECT * from {uc_recurring_extensions} WHERE pfid IS NULL ORDER BY rebill_attempt");
-  while($ext = db_fetch_array($result)) {
+  $extensions = uc_recurring_get_extension_list();
+  $extend_days = array();
+  foreach ($extensions as $ext) {
+    $days = $ext->time_to_extend / (24*60*60);
     $rows[] = array(
-      'attempt' => $ext['rebill_attempt'],
-      'time_to_extent' => $ext['time_to_extend'] == 0 ? t('expire') : t('@num_days days', array('@num_days' => $ext['time_to_extend'] / (24*60*60))),
+      'attempt' => $ext->rebill_attempt,
+      'time_to_extent' => $ext->time_to_extend == 0 ? t('expire') : t('@num_days days', array('@num_days' => $days)),
     );
-    if ($ext['time_to_extend'] == 0) break;
+    if ($ext->time_to_extend == 0) break;
+    $extend_days[] = $days;
   }
-
   $form['extensions']['default'] = array(
-    '#value' => theme('table', array(t('Attempt #'), t('Time to extend')), $rows, array('style' => "width: auto;"))
+    '#value' => theme('table', array(t('Attempt #'), t('On a failed payment re-attempt renew after')), $rows, array('style' => "width: auto;"))
+  );
+  $form['extensions']['edit_extensions'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Reattempt on Failure'),
+    '#description' => t('Enter comma (,) seperated list of days to reattempt failed recurring charges, for example: 3,5 would mean that if the renewal failed it would first be extended by 3 days and re-attempted again, if that failed it would be extended for another 5 days, if the final attempt failed it would expire.<br/><br/>Note: that this feature only works when renewals are processed through a gateway that Ubercart Recurring Fees actually triggers. That usually means if you are using a hosted gateway (e.g. Paypal Subscriptions) these settings will not be used, instead the default renewal settings of that gateway will be used.'),
+    '#default_value' => implode(',', $extend_days), 
   );
 
   return $form;
 }
 
+function uc_recurring_form_uc_product_feature_settings_form_alter(&$form, &$form_state) {
+  if (count($form_state['post']) > 0) {
+    uc_recurring_save_extensions($form_state['post']['edit_extensions']);
+  }
+}
 /*******************************************************************************
  * Theme Functions
  ******************************************************************************/
@@ -1313,7 +1407,6 @@ function uc_recurring_set_intervals(&$fee) {
   }
   else {
     $order = uc_order_load($fee->order_id);
-    ca_pull_trigger('uc_recurring_order_renewal_expired', $order, $fee);
   }
   $fee->charged_intervals++;
   $fee->attempts = 0;

@@ -160,7 +160,7 @@ function uc_recurring_ca_predicate() {
     ),
   );
   $predicates['uc_recurring_renewal_email_expired'] = array(
-    '#title' => t('Notify customer when a renewal has expired.'),
+    '#title' => t('Notify customer when a renewal has expired due to failed payment.'),
     '#trigger' => 'uc_recurring_renewal_failed',
     '#class' => 'notification',
     '#status' => 0,
@@ -284,15 +284,6 @@ function uc_recurring_ca_trigger() {
 
   $triggers['uc_recurring_renewal_failed'] = array(
     '#title' => t('Recurring order renewal failed'),
-    '#category' => t('Recurring Fees'),
-    '#arguments' => array(
-      'order' => $order,
-      'recurring_fee' => $recurring_fee,
-    ),
-  );
-
-  $triggers['uc_recurring_renewal_expired'] = array(
-    '#title' => t('Recurring order renewal expired'),
     '#category' => t('Recurring Fees'),
     '#arguments' => array(
       'order' => $order,
