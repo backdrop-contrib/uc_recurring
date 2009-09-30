@@ -272,7 +272,6 @@ function uc_recurring_cron() {
  * Implementation of hook_user().
  */
 function uc_recurring_user($op, &$edit, &$account, $category = NULL) {
-  global $user;
   switch ($op) {
     case 'view':
       // Show only if user is privileged, and there are recurring fees.
@@ -283,7 +282,7 @@ function uc_recurring_user($op, &$edit, &$account, $category = NULL) {
           '#title' => t('Recurring fees'),
           'table' => array(
             '#type' => 'user_profile_item',
-            '#value' => l('Click here to view your recurring fees', 'user/'. $user->uid . '/recurring-fees'),
+            '#value' => l('Click here to view your recurring fees', 'user/'. $account->uid . '/recurring-fees'),
           ),
         );
       }
