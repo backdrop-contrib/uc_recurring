@@ -53,7 +53,7 @@ function uc_recurring_admin() {
         $fee->fee_amount != '0.00' ? uc_price($fee->fee_amount, $context) : t('Same as product price'),
         format_date($fee->next_charge, 'small'),
         array('data' => check_plain($fee->regular_interval), 'nowrap' => 'nowrap'),
-        $fee->remaining_intervals < 0 ? t('Untill cancelled') : $fee->remaining_intervals,
+        $fee->remaining_intervals < 0 ? t('Until cancelled') : $fee->remaining_intervals,
         $fee->remaining_intervals < 0 ? '' : $fee->remaining_intervals + $fee->charged_intervals,
         array('data' => implode(' ', $ops), 'nowrap' => 'nowrap'),
       );
