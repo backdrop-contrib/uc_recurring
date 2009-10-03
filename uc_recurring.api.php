@@ -10,9 +10,9 @@
  * method or gateway.
  *
  * @return
- * An array of recurring fee handler items, each fee handler has a key
- * corresponding to the unique payment method or gateway id. The item is
- * an associative array that may contain the following key-value pairs:
+ *   An array of recurring fee handler items, each fee handler has a key
+ *   corresponding to the unique payment method or gateway id. The item is
+ *   an associative array that may contain the following key-value pairs:
  *
  *   - "name": Required. The untranslated title of the menu item.
  *   - "payment method": Required. The type of payment method, this needs
@@ -65,5 +65,35 @@ function hook_recurring_info() {
     ), // Use the default user operation defined in uc_recurring.
   );
   return $items;
+}
+
+/**
+ * Act on recurring events.
+ *
+ * @param $op 
+ *   What kind of action is being performed. 
+ *   Possible values:
+ *   - 'renew pending': Renewal about to be processed.
+ *   - 'renew success': Renewal event succeded.
+ *   - 'renew fail': Renewal event failed.
+ *   - 'product delete': Product recurring fee deleted.
+ *   - 'user delete': User recurring fee deleted.
+ * @param $a2
+ *   - For "renew pending", "renew success", "renew fail" the Order object.
+ *   - For "product delete", the product feature ID.
+ *   - For "user delete" the recurring fee ID.
+ * @param $a3
+ *   - For "renew pending", "renew success", "renew fail" the Recurring Fee
+ *     object.
+ */
+function hook_recurringapi($op, &$a2 = NULL, &$a3 = NULL) {
+  switch ($op) {
+    case 'renew pending':
+      // add other products/fees to the order object
+      break;
+    case 'renew failed':
+      // send a private message to the user 
+      break;
+  }
 }
 ?>
