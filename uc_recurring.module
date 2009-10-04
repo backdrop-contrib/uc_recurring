@@ -1201,6 +1201,13 @@ function uc_recurring_feature_form_submit($form, &$form_state) {
   $product->number_intervals = empty($form_state['values']['unlimited_intervals']) ? $form_state['values']['number_intervals'] : -1;
   $product->nid = $form_state['values']['nid'];
 
+  $form_state['redirect'] = uc_recurring_product_feature_save($product);
+}
+
+/**
+ *
+ */
+function uc_recurring_product_feature_save(&$product) {
   $context = array(
     'revision' => 'formatted-original',
     'location' => 'recurring-feature-submit',
@@ -1208,7 +1215,7 @@ function uc_recurring_feature_form_submit($form, &$form_state) {
 
   $args = array(
     '@product' => empty($product->model) ? t('this product') : t('@model of this product', array('@model' => $product->model)),
-    '@amount' => empty($form_state['values']['fee_amount']) ? t('the same amount as the product selling price') : uc_price($product->fee_amount, $context),
+    '@amount' => empty($product->fee_amount) ? t('the same amount as the product selling price') : uc_price($product->fee_amount, $context),
     '@initial' => $product->initial_charge,
     '@regular' => $product->regular_interval,
     '@intervals' => t('@num times', array('@num' => $product->number_intervals < 0 ? t('unlimited') : $product->number_intervals - 1)),
@@ -1216,19 +1223,21 @@ function uc_recurring_feature_form_submit($form, &$form_state) {
 
   // Build the feature's data array.
   $data = array(
-    'pfid' => $pfid,
-    'nid' => $form_state['values']['nid'],
+    'pfid' => $product->pfid,
+    'nid' => $product->nid,
     'fid' => 'recurring',
     'description' => t('When @product is purchased, add a fee for @amount charged first after @initial and every @regular after that @intervals.', $args),
   );
 
   // Save the product feature and store the returned URL as our redirect.
-  $form_state['redirect'] = uc_product_feature_save($data);
+  $redirect = uc_product_feature_save($data);
 
-  if (empty($pfid)) {
+  if (empty($product->pfid)) {
     $product->pfid = db_last_insert_id('uc_product_features', 'pfid');
   }
   uc_recurring_fee_product_save($product);
+  
+  return $redirect;
 }
 
 /**
