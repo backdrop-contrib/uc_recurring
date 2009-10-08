@@ -68,6 +68,26 @@ function hook_recurring_info() {
 }
 
 /**
+ * Alter the recurring method/gateway info.
+ *
+ * @param $info
+ *   Array of the recurring fee handlers.
+ */
+function hook_recurring_info_alter(&$info) {
+  if (!empty($info['test_gateway'])) {
+    // Change the permission on the test_gateway so only user with the
+    // administer recurring fee permissions can cancel recurring fees.
+    $info['test_gateway']['menu']['cancel'] => array(
+      'title' => 'Cancel',
+      'page arguments' => array('uc_recurring_user_cancel_form'),
+      'file' => 'uc_recurring.pages.inc',
+      'access callback' => 'user_access';
+      'access arguments' = array('administer recurring fees');
+    );
+  }
+}
+
+/**
  * Act on recurring events.
  *
  * @param $op 
