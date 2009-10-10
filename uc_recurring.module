@@ -304,7 +304,7 @@ function uc_recurring_token_values($type, $object = NULL) {
       $values['fee-amount'] = $fee->fee_amount;
       $values['fee-title'] = $fee->fee_title;
       $values['charged-intervals'] = $fee->charged_intervals;
-      $values['remaining-intervals'] = $fee->remaining_intervals < 0 ? t('untill cancelled') : $fee->remaining_intervals;
+      $values['remaining-intervals'] = $fee->remaining_intervals < 0 ? t('Until cancelled') : $fee->remaining_intervals;
       $values['renewal-attempts'] = $fee->attempts;
       $values['recurring-link'] = url('user/'. $fee->uid .'recurring-fees', array('absolute' => TRUE));
       break;
@@ -1347,7 +1347,7 @@ function theme_uc_recurring_user_table($uid) {
       uc_price($fee->fee_amount, $context),
       array('data' => check_plain($fee->regular_interval), 'nowrap' => 'nowrap'),
       format_date($fee->next_charge, 'small'),
-      $fee->remaining_intervals < 0 ? t('untill cancelled') : $fee->remaining_intervals,
+      $fee->remaining_intervals < 0 ? t('Until cancelled') : $fee->remaining_intervals,
       array('data' => implode('|', $ops), 'nowrap' => 'nowrap'),
     );
   }
