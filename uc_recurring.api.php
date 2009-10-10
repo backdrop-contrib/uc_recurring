@@ -88,32 +88,52 @@ function hook_recurring_info_alter(&$info) {
 }
 
 /**
- * Act on recurring events.
+ * Act on recurring renewal event.
  *
- * @param $op 
- *   What kind of action is being performed. 
- *   Possible values:
- *   - 'renew pending': Renewal about to be processed.
- *   - 'renew success': Renewal event succeded.
- *   - 'renew fail': Renewal event failed.
- *   - 'product delete': Product recurring fee deleted.
- *   - 'user delete': User recurring fee deleted.
- * @param $a2
- *   - For "renew pending", "renew success", "renew fail" the Order object.
- *   - For "product delete", the product feature ID.
- *   - For "user delete" the recurring fee ID.
- * @param $a3
- *   - For "renew pending", "renew success", "renew fail" the Recurring Fee
- *     object.
+ * @param $order 
+ *   The order object.
+ * @param $fee
+ *   The recurring Fee object.
  */
-function hook_recurringapi($op, &$a2 = NULL, &$a3 = NULL) {
-  switch ($op) {
-    case 'renew pending':
-      // add other products/fees to the order object
-      break;
-    case 'renew failed':
-      // send a private message to the user 
-      break;
-  }
+function hook_recurring_renewal_pending(&$order, &$fee) {
 }
-?>
+
+/**
+ * Act on recurring renewal completed event.
+ *
+ * @param $order 
+ *   The order object.
+ * @param $fee
+ *   The recurring Fee object.
+ */
+function hook_recurring_renewal_completed(&$order, &$fee) {
+}
+
+/**
+ * Act on recurring renewal failed event.
+ *
+ * @param $order 
+ *   The order object.
+ * @param $fee
+ *   The recurring fee object.
+ */
+function hook_recurring_renewal_failed(&$order, &$fee) {
+}
+
+/**
+ * Act on recurring product deleted.
+ *
+ * @param $pfid
+ *   The product fee ID.
+ */
+function hook_recurring_product_deleted($pfid) {
+}
+
+/**
+ * Act on recurring user deleted.
+ *
+ * @param $rfid
+ *   the recurring fee ID.
+ */
+function hook_recurring_renew_failed(&$order, &$fee) {
+}
