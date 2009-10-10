@@ -1250,7 +1250,7 @@ function uc_recurring_settings_form() {
   $methods = uc_recurring_get_recurring_info();
   foreach ($methods as $fee_handler => $method) {
     if ($fee_handler == $method['payment method']) {
-      $options[$fee_handler] = $method['name'] .' ('. $method['payment method'] .')';
+      $options[$fee_handler] = $method['name'] .' ('. $method['fee handler'] .')';
     }
   }
   $form['uc_recurring_payment_methods'] = array(
