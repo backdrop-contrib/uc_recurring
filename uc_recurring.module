@@ -25,6 +25,12 @@
 define('UC_RECURRING_MENU_DISABLED', 0);
 define('UC_RECURRING_MENU_DEFAULT', 1);
 
+/**
+ * Recurring fee states.
+ */
+define('UC_RECURRING_FEE_STATUS_ACTIVE', 0);
+define('UC_RECURRING_FEE_STATUS_EXPIRED', 1);
+
 /*******************************************************************************
  * Drupal Hooks
  ******************************************************************************/
@@ -268,6 +274,14 @@ function uc_recurring_cron() {
       }
     }
     watchdog('uc_recurring', '@success recurring fees processed successfully; @fail failed.', array('@success' => $success, '@fail' => $fail));
+  }
+
+  $fees = uc_recurring_get_fees_for_expiration();
+  if (!empty($fees)) {
+    foreach($fees as $fee) {
+      uc_recurring_expire($fee);
+    }
+    watchdog('uc_recurring', '@count recurring fees expired successfully.', array('@count' => count($fees)));
   }
 }
 
@@ -588,6 +602,21 @@ function uc_recurring_renew($fee) {
     ca_pull_trigger('uc_recurring_order_renewal_failed', $order, $fee);
   }
   return FALSE;
+}
+
+/**
+ * Process a fee expiration.
+ * 
+ * @param #fee
+ *   The fee object.
+ */
+function uc_recurring_expire($fee) {
+  $order = uc_order_load($fee->order_id);
+
+  $fee->status = UC_RECURRING_FEE_STATUS_EXPIRED;
+  uc_recurring_fee_user_save($fee);
+
+  ca_pull_trigger('uc_recurring_renewal_expired', $order, $fee);
 }
 
 /**
@@ -945,6 +974,20 @@ function uc_recurring_get_fees_for_renew() {
   }
   return $fees;
 }
+
+/**
+ * Get all pending fees that should be expired.
+ */
+function uc_recurring_get_fees_for_expiration() {
+  $fees= array();
+  $result = db_query("SELECT * FROM {uc_recurring_users} WHERE remaining_intervals = 0 AND next_charge <= %d AND own_handler = 0 AND status != %d ORDER BY order_id DESC", time(), UC_RECURRING_FEE_STATUS_EXPIRED);
+  while ($fee = db_fetch_object($result)) {
+    $fee->data = unserialize($fee->data);
+    $fees[$fee->rfid] = $fee;
+  }
+  return $fees;
+}
+
 
 /**
  * Get all fees is the system.

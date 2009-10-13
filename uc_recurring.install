@@ -179,6 +179,12 @@ function uc_recurring_schema() {
         'not null' => FALSE,
         'default' => 0,
       ),
+      'status' => array(
+        'description' => 'The status of the recurring fee, e.g. "active" or "expired"',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'primary key' => array('rfid'),
   );
@@ -429,7 +435,7 @@ function uc_recurring_update_6005() {
 function uc_recurring_update_6006() {
   $ret = array();
 
-  // Make remaining interval fields singable, so we can set it as -1, to
+  // Make remaining interval fields signable, so we can set it as -1, to
   // indicate unlimited recurring fees.
   $intervals = array(
     'type' => 'int',
@@ -453,5 +459,16 @@ function uc_recurring_update_6006() {
   db_add_field($ret, 'uc_recurring_users', 'own_handler', array('description' => t('Indicate if recurring fee is done by own handler, such as Paypal.'), 'type' => 'int', 'size' => 'small', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
   db_add_field($ret, 'uc_recurring_products', 'nid', array('description' => 'The ID of the node this role feature is attached to.', 'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
 
+  return $ret;
+}
+
+/**
+ * Add status field to recurring users table.
+ */
+function uc_recurring_update_6007() {
+  $ret = array();
+  
+  db_add_field($ret, 'uc_recurring_users', 'status', array('description' => 'The status of the recurring fee, e.g. "active" or "expired"', 'type' => 'int', 'not null' => TRUE, 'default' => 0));
+  
   return $ret;
 }

@@ -291,6 +291,15 @@ function uc_recurring_ca_trigger() {
     ),
   );
 
+  $triggers['uc_recurring_renewal_expired'] = array(
+    '#title' => t('Recurring order renewal expired'),
+    '#category' => t('Recurring Fees'),
+    '#arguments' => array(
+      'order' => $order,
+      'recurring_fee' => $recurring_fee,
+    ),
+  );
+
   return $triggers;
 }
 
