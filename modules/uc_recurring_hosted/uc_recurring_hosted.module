@@ -12,7 +12,7 @@
  *****************************************************************************/
 
 /**
- * Implementation of hook_recurring_info().
+ * Implementation of hook_menu().
  */
 function uc_recurring_hosted_menu() {
   $items['uc_recurring_hosted/paypal/ipn/%'] = array( 
@@ -158,7 +158,6 @@ function uc_recurring_hosted_authorizenet_arb_process($order, &$fee) {
         'id' => substr($order->uid, 0, 20),
         'email' => substr($order->primary_email, 0, 255),
         'phoneNumber' => substr($order->billing_phone, 0, 25),
-        // 'faxNumber' => '',
       ),
       'billTo' => array(
         'firstName' => substr($order->billing_first_name, 0, 50),
@@ -252,7 +251,7 @@ function uc_recurring_hosted_authorizenet_arb_renew($order, $fee) {
 
 /**
  * Implementation of hook_uc_auth_arb_payment().
- * Called during an ARB silent post 
+ * Called during an ARB silent post. 
  */
 function uc_recurring_hosted_uc_auth_arb_payment($post) {
   $fee = db_fetch_object(db_query("SELECT rfid FROM {uc_recurring_hosted} WHERE subscription_id = '%s'", $post['x_subscription_id']));
@@ -276,7 +275,7 @@ function uc_recurring_hosted_uc_auth_arb_payment($post) {
  * @param $fee
  *   The fee object.
  * @return
- *   TRUE if recurring fee was cancelled
+ *   TRUE if recurring fee was cancelled.
  */
 function uc_recurring_hosted_authorizenet_arb_cancel($order, &$fee) {
   $server = variable_get('uc_authnet_arb_mode', 'disabled');
@@ -366,11 +365,11 @@ function uc_recurring_hosted_authorizenet_arb_update_form_submit(&$form, &$form_
   );
   
   if (uc_authorizenet_arb_update($subscription_id, $updates, $order->order_id)) {
-    drupal_set_message('Account updated.');
+    drupal_set_message(t('Account updated.'));
     $form_state['redirect'] = 'user/'. $form_state['values']['uid'];
   }
   else {
-    drupal_set_message('Account update failed.', 'error');
+    drupal_set_message(t('Account update failed.'), 'error');
   }
 }
 
