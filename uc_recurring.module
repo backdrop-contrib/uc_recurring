@@ -213,6 +213,7 @@ function uc_recurring_recurring_info() {
         'access callback' => 'user_access',
         'access arguments' => array('administer recurring fees'),
         'file' => 'uc_recurring.admin.inc',
+        'file path' => drupal_get_path('module', 'uc_recurring'),
       ),
       'edit' => array(
         'title' => 'Edit', 
@@ -220,11 +221,13 @@ function uc_recurring_recurring_info() {
         'access callback' => 'user_access',
         'access arguments' => array('administer recurring fees'),
         'file' => 'uc_recurring.admin.inc',
+        'file path' => drupal_get_path('module', 'uc_recurring'),
       ),
       'cancel' => array(
         'title' => 'Cancel', 
         'page arguments' => array('uc_recurring_user_cancel_form'),
         'file' => 'uc_recurring.pages.inc',
+        'file path' => drupal_get_path('module', 'uc_recurring'),
       ),
     ),
   );
