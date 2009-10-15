@@ -27,8 +27,6 @@ function uc_recurring_uc_credit_recurring_info() {
  * Credit card process and renew.
  */
 function uc_recurring_uc_credit($order, &$fee, $op) {
-  // Get the default gateway that should be used to process the credit card.
-  $gateway = uc_credit_default_gateway();
   // Invoke the correct payment method.
-  return uc_recurring_invoke($gateway, $op, array($order, &$fee));
+  return uc_recurring_invoke($fee->fee_handler, $op, array($order, &$fee));
 }
