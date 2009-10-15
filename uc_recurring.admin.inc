@@ -257,7 +257,7 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
 
   $interval = $form_state['values']['regular_interval_value'] .' '. $form_state['values']['regular_interval_unit'];
 
-  $form_state['values']['number_intervals'] = empty($form_state['values']['unlimited_intervals']) ? $form_state['values']['number_intervals'] : -1;
+  $form_state['values']['number_intervals'] = empty($form_state['values']['unlimited_intervals']) ? $form_state['values']['number_intervals'] : UC_RECURRING_UNLIMITED_INTERVALS;
 
   db_query("UPDATE {uc_recurring_users} SET fee_amount = %f, regular_interval = '%s', "
           ."remaining_intervals = %d WHERE rfid = %d", $form_state['values']['fee_amount'],

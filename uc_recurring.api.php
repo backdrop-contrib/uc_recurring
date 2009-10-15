@@ -135,5 +135,24 @@ function hook_recurring_product_deleted($pfid) {
  * @param $rfid
  *   the recurring fee ID.
  */
-function hook_recurring_renew_failed(&$order, &$fee) {
+function hook_recurring_user_deleted($rfid) {
+}
+
+/**
+ * Set the access permission on user operations.
+ *
+ * @param $fee
+ *   The recurring fee object.
+ * @param $op
+ *   The operation being performed, e.g. cancel, edit, update.
+ * @param $account
+ *   The account of the user.
+ */
+function hook_recurring_access($fee, $op, $account) {
+  // Deny access to the cancel operation for recurring fees that do not have
+  // have an unlimited number of remaining intervals (e.g payment plan)
+  if ($op == 'cancel' && $fee->remaining_intervals != UC_RECURRING_UNLIMITED_INTERVALS) {
+    return UC_RECURRING_ACCESS_DENY;
+  }
+  return UC_RECURRING_ACCESS_IGNORE;
 }

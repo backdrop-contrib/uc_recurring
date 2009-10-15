@@ -31,6 +31,18 @@ define('UC_RECURRING_MENU_DEFAULT', 1);
 define('UC_RECURRING_FEE_STATUS_ACTIVE', 0);
 define('UC_RECURRING_FEE_STATUS_EXPIRED', 1);
 
+/**
+ * Recurring access.
+ */
+define('UC_RECURRING_ACCESS_DENY', 'deny');
+define('UC_RECURRING_ACCESS_ALLOW', 'allow');
+define('UC_RECURRING_ACCESS_IGNORE', NULL);
+
+/**
+ * Unlimited number of intervals.
+ */
+define('UC_RECURRING_UNLIMITED_INTERVALS', -1);
+
 /*******************************************************************************
  * Drupal Hooks
  ******************************************************************************/
@@ -108,7 +120,7 @@ function uc_recurring_menu() {
           $items[$admin_path]['page arguments'][] = 6; // Add fee_handler as an arguments.
 
           $user_path = 'user/%user/recurring/%/'. $path .'/'. $value['fee handler'];
-          $default_menu_fields['access arguments'] = array(1);
+          $default_menu_fields['access arguments'] = array(1, 3, 4);
           $items[$user_path] = array_merge($default_menu_fields, $menu_item);
           $items[$user_path]['page arguments'][] = 3; // Add rfid as an arguments.
           $items[$user_path]['page arguments'][] = 5; // Add fee_handler as an arguments.
@@ -1083,13 +1095,28 @@ function uc_recurring_get_recurring_products_in_order($order) {
  *
  * @param $account
  *   The user account being accessed
+ * @param $rfid
+ *   The recurring fee ID.
+ * @param $op
+ *   The user operation, e.g. cancel, edit, update.
  * @return
  *   True if user has permission to access menu item.
  */
-function uc_recurring_user_access($account = NULL) {
+function uc_recurring_user_access($account = NULL, $rfid = NULL, $op = '') {
   global $user;
-  if ($account === NULL) {
+  if (!isset($account)) {
     return user_access('administer recurring fees');
+  }
+  // Check if user has access to perform action on a certain fee.
+  if (isset($rfid)) {
+    $fee = uc_recurring_fee_user_load($rfid);
+    $access = module_invoke_all('recurring_access', $fee, $op, $account);
+    if (in_array(UC_RECURRING_ACCESS_DENY, $access, TRUE)) {
+      return FALSE;
+    }
+    elseif (in_array(UC_RECURRING_ACCESS_ALLOW, $access, TRUE)) {
+      return TRUE;
+    }
   }
   return (user_access('administer recurring fees') || (user_access('view own recurring fees') && $user->uid == $account->uid)) && uc_recurring_get_user_fees($account->uid);
 }
@@ -1249,7 +1276,7 @@ function uc_recurring_feature_form_submit($form, &$form_state) {
   $product->initial_charge = $form_state['values']['initial_charge_value'] .' '. $form_state['values']['initial_charge_unit'];
   $product->regular_interval = $form_state['values']['regular_interval_value'] .' '. $form_state['values']['regular_interval_unit'];
   // If number intervals is negative, it means that it's unlimited intervals.
-  $product->number_intervals = empty($form_state['values']['unlimited_intervals']) ? $form_state['values']['number_intervals'] : -1;
+  $product->number_intervals = empty($form_state['values']['unlimited_intervals']) ? $form_state['values']['number_intervals'] : UC_RECURRING_UNLIMITED_INTERVALS;
   $product->nid = $form_state['values']['nid'];
 
   $form_state['redirect'] = uc_recurring_product_feature_save($product);
@@ -1453,7 +1480,6 @@ function uc_recurring_get_fee_ops($context, $fee) {
   } 
   return $ops;
 }
-
 
 /**
  * Set the intervals after a successful charge.
