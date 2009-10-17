@@ -411,7 +411,6 @@ function uc_recurring_hosted_form_uc_paypal_wps_form_alter(&$form, $form_state) 
     // TODO: what do we do if someone tries to order more then one subscription??
     // we will just process the first for now
     $recurring_fee = $recurring_fees[0]; 
-    print_r($recurring_fee);
     if (count($recurring_fees) > 1) {
       drupal_set_message(t('Sorry recurring payments can only be setup for one product at a time when paying via paypal, only the first recurring payment will be setup when you click on Submit order.'), 'warning');
     }
