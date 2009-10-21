@@ -572,7 +572,7 @@ function uc_recurring_renew($fee) {
 
   // Give other modules a chance to modify the new order before processing
   foreach (module_implements('recurring_renewal_pending') as $module) {
-    $func = $module .'_recurring_renew';
+    $func = $module .'_recurring_renewal_pending';
     $func($new_order, $fee);
   }
   uc_order_save($new_order);
