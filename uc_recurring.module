@@ -844,7 +844,7 @@ function uc_recurring_fee_product_save($product) {
  */
 function uc_recurring_fee_user_save($fee) {
   // Update an existing row.
-  drupal_alter('recurring_fee_product_save', $product);
+  drupal_alter('recurring_fee_user_save', $fee);
 
   if (!empty($fee->rfid)) {
     // Update an existing row.
