@@ -29,8 +29,8 @@
  *   - "menu": Array of menu items that provide the user operations.
  *     uc_recurring does provide some common default operations for charge,
  *     edit and cancel which can be reused by setting these to either:
- *     - UC_RECURRING_MENU_DISABLED (default) 
- *     - UC_RECURRING_MENU_DEFAULT 
+ *     - UC_RECURRING_MENU_DISABLED (default)
+ *     - UC_RECURRING_MENU_DEFAULT
  *
  * For a detailed usage example, see modules/uc_recurring.test_gateway.inc.
  *
@@ -51,14 +51,14 @@ function hook_recurring_info() {
     'menu' => array(
       'charge' => UC_RECURRING_MENU_DEFAULT,
       'edit' => array(
-        'title' => 'Edit', 
+        'title' => 'Edit',
         'page arguments' => array('uc_recurring_admin_edit_form'),
         'access callback' => 'user_access',
         'access arguments' => array('administer recurring fees'),
         'file' => 'uc_recurring.admin.inc',
       ),
       'cancel' => array(
-        'title' => 'Cancel', 
+        'title' => 'Cancel',
         'page arguments' => array('uc_recurring_user_cancel_form'),
         'file' => 'uc_recurring.pages.inc',
       ),
@@ -68,7 +68,7 @@ function hook_recurring_info() {
 }
 
 /**
- * Alter the recurring method/gateway info.
+ * Alter the recurring method/ gateway info.
  *
  * @param $info
  *   Array of the recurring fee handlers.
@@ -77,12 +77,12 @@ function hook_recurring_info_alter(&$info) {
   if (!empty($info['test_gateway'])) {
     // Change the permission on the test_gateway so only user with the
     // administer recurring fee permissions can cancel recurring fees.
-    $info['test_gateway']['menu']['cancel'] => array(
+    $info['test_gateway']['menu']['cancel'] = array(
       'title' => 'Cancel',
       'page arguments' => array('uc_recurring_user_cancel_form'),
       'file' => 'uc_recurring.pages.inc',
-      'access callback' => 'user_access';
-      'access arguments' = array('administer recurring fees');
+      'access callback' => 'user_access',
+      'access arguments' => array('administer recurring fees'),
     );
   }
 }
@@ -90,7 +90,7 @@ function hook_recurring_info_alter(&$info) {
 /**
  * Act on recurring renewal event.
  *
- * @param $order 
+ * @param $order
  *   The order object.
  * @param $fee
  *   The recurring Fee object.
@@ -101,7 +101,7 @@ function hook_recurring_renewal_pending(&$order, &$fee) {
 /**
  * Act on recurring renewal completed event.
  *
- * @param $order 
+ * @param $order
  *   The order object.
  * @param $fee
  *   The recurring Fee object.
@@ -112,7 +112,7 @@ function hook_recurring_renewal_completed(&$order, &$fee) {
 /**
  * Act on recurring renewal failed event.
  *
- * @param $order 
+ * @param $order
  *   The order object.
  * @param $fee
  *   The recurring fee object.
