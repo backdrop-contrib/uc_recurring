@@ -416,7 +416,7 @@ function uc_recurring_hosted_form_uc_paypal_wps_form_alter(&$form, $form_state) 
     }
 
     // IPN control notify URL
-    $data['notify_url'] = url('uc_recurring_hosted/ipn/'. $order->order_id, array('absolute' => TRUE));
+    $data['notify_url'] = url('uc_recurring_hosted/paypal/ipn/'. $order->order_id, array('absolute' => TRUE));
 
     $data['cmd'] = '_xclick-subscriptions';  
     $data['item_name'] = t('Order @order_id at !store', array('@order_id' => $order->order_id, '!store' => variable_get('uc_store_name', url('<front>', array('absolute' => TRUE)))));
