@@ -611,7 +611,7 @@ function uc_recurring_renew($fee) {
     module_invoke_all('recurring_renewal_failed', $new_order, $fee);
     uc_order_delete($new_id);
 
-    ca_pull_trigger('uc_recurring_order_renewal_failed', $order, $fee);
+    ca_pull_trigger('uc_recurring_renewal_failed', $order, $fee);
   }
   return FALSE;
 }
