@@ -16,7 +16,7 @@
 /**
  * Shortcuts for defining disabled or default menu items in the recurring info
  * definitions, rather then needing to specify the whole menu item.
- * 
+ *
  * UC_RECURRING_MENU_DISABLED is included for completeness, menu items are
  * assumed to be disabled if not included in a recurring definition.
  *
@@ -108,8 +108,8 @@ function uc_recurring_menu() {
             $menu_item = !empty($info['default']['menu'][$path]) ? $info['default']['menu'][$path] : array();
           }
           $default_menu_fields = array(
-            'title' => $path, 
-            'page callback' => 'drupal_get_form', 
+            'title' => $path,
+            'page callback' => 'drupal_get_form',
             'access callback' => 'uc_recurring_user_access',
             'type' => MENU_CALLBACK,
             'file path' => drupal_get_path('module', $value['module']),
@@ -170,22 +170,24 @@ function uc_recurring_form_uc_cart_checkout_form_alter(&$form, $form_state) {
 
     // Remove invalid payment methods from the payment pane.
     $valid = variable_get('uc_recurring_payment_methods', array());
-    foreach (array_keys($form['panes']['payment']['payment_method']['#options']) as $key) {
-      if ($valid[$key] === 0 || !uc_recurring_payment_method_supported($key)) {
-        unset($form['panes']['payment']['payment_method']['#options'][$key]);
+    if (!empty($form['panes']['payment']['payment_method']['#options'])) {
+      foreach (array_keys($form['panes']['payment']['payment_method']['#options']) as $key) {
+        if ($valid[$key] === 0 || !uc_recurring_payment_method_supported($key)) {
+          unset($form['panes']['payment']['payment_method']['#options'][$key]);
+        }
       }
-    }
 
-    $count = count($form['panes']['payment']['payment_method']['#options']);
-    if ($count == 0) {
-      // Display an error message if no payment methods remain.
-      if (user_access('administer recurring fees')) {
-        drupal_set_message(t('There are no payment methods configured for orders with recurring fees, enable one from <a href="@url">recurring fee admin settings</a>.', array('@url' => url('admin/store/settings/products/edit/features'))), 'error');
+      $count = count($form['panes']['payment']['payment_method']['#options']);
+      if ($count == 0) {
+        // Display an error message if no payment methods remain.
+        if (user_access('administer recurring fees')) {
+          drupal_set_message(t('There are no payment methods configured for orders with recurring fees, enable one from <a href="@url">recurring fee admin settings</a>.', array('@url' => url('admin/store/settings/products/edit/features'))), 'error');
+        }
       }
-    }
-    elseif ($count == 1) {
-      // If only one payment method remains, make it the default.
-      $form['panes']['payment']['payment_method']['#default_value'] = array_pop(array_keys($form['panes']['payment']['payment_method']['#options']));
+      elseif ($count == 1) {
+        // If only one payment method remains, make it the default.
+        $form['panes']['payment']['payment_method']['#default_value'] = array_pop(array_keys($form['panes']['payment']['payment_method']['#options']));
+      }
     }
   }
 }
@@ -214,19 +216,19 @@ function uc_recurring_form_uc_order_view_update_form_alter(&$form, $form_state) 
 
 /**
  * Implementation of hook_recurring_info().
- * 
+ *
  * Add a default handler.
  */
 function uc_recurring_recurring_info() {
   $items['default'] = array(
     'name' => t('Default handler'),
     'module' => 'uc_recurring',
-    'fee handler' => 'default', 
+    'fee handler' => 'default',
     'process callback' => 'uc_recurring_default_handler',
     'renew callback' => 'uc_recurring_default_handler',
     'menu' => array(
       'charge' => array(
-        'title' => 'Charge', 
+        'title' => 'Charge',
         'page arguments' => array('uc_recurring_admin_charge_form'),
         'access callback' => 'user_access',
         'access arguments' => array('administer recurring fees'),
@@ -234,7 +236,7 @@ function uc_recurring_recurring_info() {
         'file path' => drupal_get_path('module', 'uc_recurring'),
       ),
       'edit' => array(
-        'title' => 'Edit', 
+        'title' => 'Edit',
         'page arguments' => array('uc_recurring_admin_edit_form'),
         'access callback' => 'user_access',
         'access arguments' => array('administer recurring fees'),
@@ -242,7 +244,7 @@ function uc_recurring_recurring_info() {
         'file path' => drupal_get_path('module', 'uc_recurring'),
       ),
       'cancel' => array(
-        'title' => 'Cancel', 
+        'title' => 'Cancel',
         'page arguments' => array('uc_recurring_user_cancel_form'),
         'file' => 'uc_recurring.pages.inc',
         'file path' => drupal_get_path('module', 'uc_recurring'),
@@ -327,7 +329,7 @@ function uc_recurring_token_values($type, $object = NULL) {
   switch ($type) {
     case 'recurring_fee':
       $fee = $object;
-      
+
       $values['recurring-fee-id'] = $fee->rfid;
       $values['next-charge'] = format_date($fee->next_charge);
       $values['fee-amount'] = $fee->fee_amount;
@@ -390,7 +392,7 @@ function uc_recurring_order($op, &$arg1, $arg2) {
         uc_recurring_fee_cancel($fee->rfid, $fee);
         uc_recurring_fee_user_delete($fee->rfid);
       }
-      break; 
+      break;
   }
 }
 
@@ -558,7 +560,7 @@ function uc_recurring_renew($fee) {
   $product->title = !empty($fee->fee_title) ? $fee->fee_title : t('Renewal of product @model', array('@model' => $product->model));
   $product->qty = 1;
   $product->price = $fee->fee_amount;
- 
+
   // initialize these items to remove warnings
   $product->cost = 0;
   $product->manufacturer = '';
@@ -618,7 +620,7 @@ function uc_recurring_renew($fee) {
 
 /**
  * Process a fee expiration.
- * 
+ *
  * @param #fee
  *   The fee object.
  */
@@ -675,7 +677,7 @@ function uc_recurring_get_extension($fee_id, $attempt) {
 }
 
 /**
- * Retuns a list of all the extensions for a specific recurring fee. 
+ * Retuns a list of all the extensions for a specific recurring fee.
  *
  * @param $fee_id
  *   The id of the recurring fee to get extensions.
@@ -767,7 +769,7 @@ function uc_recurring_default_handler() {
 /**
  * Checks that a payment method can process recurring fees. This is done by
  * checking that a recurring fee handler exists for the payment method.
- * 
+ *
  * @param $payment method
  *   The id of the payment method.
  * @return
@@ -1009,7 +1011,7 @@ function uc_recurring_get_all_fees() {
   $result = db_query("SELECT * FROM {uc_recurring_users}");
   while ($fee = db_fetch_object($result)) {
     $fees[$fee->rfid] = $fee;
-    $fee->data = unserialize($fee->data);    
+    $fee->data = unserialize($fee->data);
   }
   return $fees;
 }
@@ -1314,7 +1316,7 @@ function uc_recurring_product_feature_save(&$product) {
     $product->pfid = db_last_insert_id('uc_product_features', 'pfid');
   }
   uc_recurring_fee_product_save($product);
-  
+
   return $redirect;
 }
 
@@ -1383,7 +1385,7 @@ function uc_recurring_settings_form() {
     '#type' => 'textfield',
     '#title' => t('Reattempt on Failure'),
     '#description' => t('Enter comma (,) seperated list of days to reattempt failed recurring charges, for example: 3,5 would mean that if the renewal failed it would first be extended by 3 days and re-attempted again, if that failed it would be extended for another 5 days, if the final attempt failed it would expire.<br/><br/>Note: that this feature only works when renewals are processed through a gateway that Ubercart Recurring Fees actually triggers. That usually means if you are using a hosted gateway (e.g. Paypal Subscriptions) these settings will not be used, instead the default renewal settings of that gateway will be used.'),
-    '#default_value' => implode(',', $extend_days), 
+    '#default_value' => implode(',', $extend_days),
   );
 
   return $form;
@@ -1477,7 +1479,7 @@ function uc_recurring_get_fee_ops($context, $fee) {
         }
       }
     }
-  } 
+  }
   return $ops;
 }
 
