@@ -708,7 +708,7 @@ function uc_recurring_save_extensions($extensions, $fee_id = NULL) {
   db_query("DELETE FROM {uc_recurring_extensions} WHERE pfid IS NULL");
 
   $extend = explode(',', $extensions);
-  $count = 1;
+  $count = 0;
   foreach($extend as $days_to_extend) {
     $seconds = $days_to_extend * (24*60*60);
     db_query("INSERT INTO {uc_recurring_extensions} (rebill_attempt, time_to_extend) VALUES (%d, %d)", $count, $seconds);
@@ -1370,7 +1370,7 @@ function uc_recurring_settings_form() {
   foreach ($extensions as $ext) {
     $days = $ext->time_to_extend / (24*60*60);
     $rows[] = array(
-      'attempt' => $ext->rebill_attempt,
+      'attempt' => $ext->rebill_attempt + 1,
       'time_to_extent' => $ext->time_to_extend == 0 ? t('expire') : t('@num_days days', array('@num_days' => $days)),
     );
     if ($ext->time_to_extend == 0) break;

@@ -6,6 +6,9 @@
  * Installs the Recurring Fee module.
  */
 
+/**
+ * Implementation hook_schema().
+ */
 function uc_recurring_schema() {
   $schema = array();
 
@@ -256,11 +259,21 @@ function uc_recurring_schema() {
   return $schema;
 }
 
+/**
+ * Implementation hook_install().
+ */
 function uc_recurring_install() {
   drupal_install_schema('uc_recurring');
-  db_query("INSERT INTO {uc_recurring_extensions} (pfid, rebill_attempt, time_to_extend) VALUES (NULL, 1, 259200), (NULL, 2, 432000), (NULL, 3, 0)");
+
+  // Add default extensions periods.
+  $three_days = strtotime("+3 days", 0);
+  $five_days = strtotime("+5 days", 0);
+  db_query("INSERT INTO {uc_recurring_extensions} (pfid, rebill_attempt, time_to_extend) VALUES (NULL, 1, %d), (NULL, 2, %d), (NULL, 3, 0)", $three_days, $five_days);
 }
 
+/**
+ * Implementation hook_uninstall().
+ */
 function uc_recurring_uninstall() {
   drupal_uninstall_schema('uc_recurring');
 
@@ -469,6 +482,17 @@ function uc_recurring_update_6007() {
   $ret = array();
   
   db_add_field($ret, 'uc_recurring_users', 'status', array('description' => 'The status of the recurring fee, e.g. "active" or "expired"', 'type' => 'int', 'not null' => TRUE, 'default' => 0));
+  
+  return $ret;
+}
+
+/**
+ * Update the extension table, decrement the rebill_attempt value to start from 0 instead of 1.
+ */
+function uc_recurring_update_6008() {
+  $ret = array();
+  
+  db_query("UPDATE {uc_recurring_extensions} set rebill_attempt=rebill_attempt-1");
   
   return $ret;
 }
