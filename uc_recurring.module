@@ -504,6 +504,8 @@ function uc_recurring_process_order($order) {
       $fee->order_product_id = $order_product_id;
       $fee->own_handler = !empty($fee_handler['own handler']);
 
+      drupal_alter('recurring_fee_user_create', $fee);
+
       // Let the implementing module process.
       if (uc_recurring_invoke($fee->fee_handler, 'process callback', array($order, &$fee))) {
         // Recurring processing was successful, get the fee.
