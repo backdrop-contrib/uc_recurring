@@ -74,8 +74,8 @@ function uc_recurring_hosted_recurring_info() {
       'payment method' => 'paypal_wps',
       'fee handler' => 'paypal_wps',
       'module' => 'uc_recurring_hosted',
-      'process callback' => 'uc_recurring_hosted_wps_process',
-      'own_hander' => TRUE,
+      'process callback' => 'uc_recurring_hosted_paypal_wps_process',
+      'own handler' => TRUE,
       'menu' => array(
         'cancel' => array(
           'title' => 'Cancel', 
@@ -244,7 +244,7 @@ function uc_recurring_hosted_authorizenet_arb_process($order, &$fee) {
  *   Always returns TRUE.
  */
 function uc_recurring_hosted_authorizenet_arb_renew($order, $fee) {
-  uc_payment_enter($order->order_id, $order->payment_menthd, $_POST['x_amount'], $fee->uid, NULL, t('Authorize.net ARB subsription ID: @subscription_id', array('@subscription_id' => $_POST['x_subscription_id'])));
+  uc_payment_enter($order->order_id, $order->payment_method, $_POST['x_amount'], $fee->uid, NULL, t('Authorize.net ARB subsription ID: @subscription_id', array('@subscription_id' => $_POST['x_subscription_id'])));
 
   return TRUE;
 }
