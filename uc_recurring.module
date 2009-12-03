@@ -657,6 +657,9 @@ function uc_recurring_process_extensions(&$fee) {
 function uc_recurring_extend_fee(&$fee, $extend_seconds) {
   $fee->attempts++;
   $fee->next_charge += $extend_seconds;
+  if ($extend_seconds == 0) {
+    $fee->remaining_intervals = 0;
+  }
   uc_recurring_fee_user_save($fee);
 }
 
