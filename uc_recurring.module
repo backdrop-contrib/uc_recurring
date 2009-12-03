@@ -613,9 +613,10 @@ function uc_recurring_renew($fee) {
     watchdog('uc_recurring', 'Failed to capture recurring fee of @amount for product @model on order @order_id.', array('@amount' => $fee->fee_amount, '@model' => $fee->data['model'], '@order_id' => $fee->order_id), WATCHDOG_ERROR, l(t('order !order_id', array('!order_id' => $fee->order_id)), 'admin/store/orders/'. $fee->order_id));
 
     module_invoke_all('recurring_renewal_failed', $new_order, $fee);
-    uc_order_delete($new_id);
 
     ca_pull_trigger('uc_recurring_renewal_failed', $order, $fee);
+
+    uc_order_comment_save($old_id, $user->uid, t('New recurring fee failed on order <a href="@store-orders">@order_id</a>.', array('@store-orders' => url('admin/store/orders/'.$new_id), '@order_id' => $new_id)));
   }
   return FALSE;
 }
