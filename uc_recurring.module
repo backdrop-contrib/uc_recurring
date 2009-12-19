@@ -276,18 +276,20 @@ function uc_recurring_order_view_update_form_submit($form, &$form_state) {
 function uc_recurring_cron() {
   $fail = $success = 0;
 
-  $fees = uc_recurring_get_fees_for_renew();
-  if (!empty($fees)) {
-    foreach($fees as $fee) {
-      if ($order_id = uc_recurring_renew($fee)) {
-        $success++;
+  if (variable_get('uc_recurring_trigger_renewals', TRUE)) {
+    $fees = uc_recurring_get_fees_for_renew();
+    if (!empty($fees)) {
+      foreach($fees as $fee) {
+        if ($order_id = uc_recurring_renew($fee)) {
+          $success++;
+        }
+        else {
+          // payment attempted but failed
+          $fail++;
+        }
       }
-      else {
-        // payment attempted but failed
-        $fail++;
-      }
+      watchdog('uc_recurring', '@success recurring fees processed successfully; @fail failed.', array('@success' => $success, '@fail' => $fail));
     }
-    watchdog('uc_recurring', '@success recurring fees processed successfully; @fail failed.', array('@success' => $success, '@fail' => $fail));
   }
 
   $fees = uc_recurring_get_fees_for_expiration();
@@ -1349,6 +1351,12 @@ function uc_recurring_settings_form() {
     '#title' => t('Recurring fee checkout form message'),
     '#description' => t('Enter a message to be displayed on the checkout form page when a customer has products in the cart with recurring fees.<br />Leave blank to not display any message.'),
     '#default_value' => variable_get('uc_recurring_checkout_message', ''),
+  );
+  $form['uc_recurring_trigger_renewals'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable triggered renewals'),
+    '#description' => t('Enable recurring fees to be triggered on cron jobs. Disabling this is a simple way to stop recurring billing from happening for gateways where uc_recurring is responsible for triggering payments (this is especially useful when working on a development copy).'),
+    '#default_value' => variable_get('uc_recurring_trigger_renewals', TRUE),
   );
   $form['uc_recurring_checkout_process'] = array(
     '#type' => 'checkbox',
