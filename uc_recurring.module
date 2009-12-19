@@ -513,7 +513,7 @@ function uc_recurring_process_order($order) {
         // Recurring processing was successful, get the fee.
         // We will save all fees together after we are sure all of them were
         // processed properly.
-        $fee_objects[] = $fee;
+        $fee_objects[] = drupal_clone($fee);
       }
       else {
         // We have an error, so break. No fee object was saved.
