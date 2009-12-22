@@ -799,7 +799,7 @@ function uc_recurring_payment_method_supported($payment_method) {
  */
 function uc_recurring_includes() {
   $return = array();
-  $modules = array('uc_paypal', 'uc_authorizenet', 'test_gateway', 'uc_credit', 'uc_payment_pack');
+  $modules = array('uc_authorizenet', 'test_gateway', 'uc_credit', 'uc_payment_pack');
   foreach ($modules as $module) {
     if (module_exists($module)) {
       module_load_include('inc', 'uc_recurring', '/modules/uc_recurring.'. $module);
