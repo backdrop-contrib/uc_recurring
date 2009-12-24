@@ -719,8 +719,10 @@ function uc_recurring_hosted_paypal_ipn($order_id) {
  * Display info on canceling the Paypal WPS subscription.
  */
 function uc_recurring_hosted_paypal_cancel_form($form_state, $rfid) {
-  $output = t('You can cancel your subscription from your paypal account, see <a href="@link">here</a> for instructions.', array('@link' => 'https://www.paypal.com/helpcenter/main.jsp?cmd=_help&t=solutionTab&solutionId=11750'));
-  return $output;
+  $form['message'] = array(
+    '#value' => t('You can cancel your subscription from your paypal account, see <a href="@link">here</a> for instructions.', array('@link' => 'https://www.paypal.com/helpcenter/main.jsp?cmd=_help&t=solutionTab&solutionId=11750')),
+  );
+  return $form;
 }
 
 /**
