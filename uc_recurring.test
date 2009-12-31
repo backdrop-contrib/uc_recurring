@@ -79,7 +79,7 @@ class ucRecurringTestCase extends UbercartTestCase {
     $last_order_id = $this->lastCreatedOrderId();
 
     // create an order
-    $this->drupalPost('node/'.$product->nid, array(), t('Add to cart'));
+    $this->drupalPost('node/'. $product->nid, array(), t('Add to cart'));
     $this->assertRaw($product->title, t('The product name has been displayed on the cart page.'));
     $this->assertRaw('added to', t('The product name has been displayed on the cart page.'));
     $this->checkout(array('panes[delivery][delivery_postal_code]' => '12345', 'panes[billing][billing_postal_code]' => '12345'));
@@ -261,7 +261,7 @@ class ucRecurringAPITestCase extends ucRecurringTestCase {
       // cancel fee
       $this->drupalGet('admin/store/orders/recurring');
       $this->clickLink(t('cancel'));
-      $this->drupalPost(NULL, array(), t('Yes, cancel this recurring fee.'));
+      $this->drupalPost(NULL, array(), t('Yes, I want to cancel the subscription'));
 
       // attempt to renew
       $last_order_id = $this->lastCreatedOrderId();
@@ -358,6 +358,8 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
    *  Place an order with the Paypal WPS gateway.
    */
   function testRecurringPaypal() {
+    module_load_include('inc', 'uc_recurring_hosted', 'uc_recurring_hosted.paypal_ipn');
+
     $this->drupalLogin($this->user_recurring_admin);
 
     $settings = array('uc_payment_method_paypal_wps_checkout' => TRUE, 'uc_paypal_wps_email' => 'paypal@example.com');
@@ -373,31 +375,36 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
     $this->drupalLogout();
 
     variable_set('uc_paypal_wps_server', url('uc_recurring_hosted/paypal/cgi-bin/webscr', array('absolute' => TRUE)));
+    variable_set('uc_paypal_wps_checkout_button', t('Submit order'));
 
     $this->drupalPost('node/'.$product->nid, array(), t('Add to cart'));
     $this->assertRaw($product->title, t('The product name has been displayed on the cart page.'));
     $this->assertRaw('added to', t('The product name has been displayed on the cart page.'));
-    $this->checkout();
+    $this->checkout(array('panes[delivery][delivery_postal_code]' => '12345', 'panes[billing][billing_postal_code]' => '12345'));
     $order_id = $this->lastCreatedOrderId();
+    $this->assertEqual($order_id, 1, t('First order created.'));
 
     // The ipn is expecting all the variables to be in the $_POST variable.
     global $_POST;
     $_POST = $this->_uc_recurring_paypal_messages('subscr_signup', $order_id);
     uc_recurring_hosted_paypal_ipn($order_id);
+    $order = uc_order_load($order_id);
+    $this->verbose(print_r($order, TRUE));
+
     $_POST = $this->_uc_recurring_paypal_messages('subscr_payment', $order_id, 20);
     uc_recurring_hosted_paypal_ipn($order_id);
     $new_order_id = $this->lastCreatedOrderId();
     $order = uc_order_load($new_order_id);
+    $this->verbose(print_r($order, TRUE));
 
-    $this->assertEqual($order->order_status, 'completed', t('Order @order_id completed', array('@order_id' => $new_order_id))); 
-    $this->assertEqual($order_id, $new_order_id, t('First payment correctly recorded against first order'));
+    $this->assertEqual('payment_received', $order->order_status, t('Order @order_id payment processed', array('@order_id' => $new_order_id)));
 
     // Renew order.
     $_POST = $this->_uc_recurring_paypal_messages('subscr_payment', $order_id, 50);
     uc_recurring_hosted_paypal_ipn($order_id);
     $new_order_id = $this->lastCreatedOrderId();
     $order = uc_order_load($new_order_id);
-    $this->assertEqual($order->order_status, 'completed', t('Order @order_id completed', array('@order_id' => $new_order_id))); 
+    $this->assertEqual('payment_received', $order->order_status, t('Order @order_id payment processed', array('@order_id' => $new_order_id)));
     $this->assertEqual($order_id+1, $new_order_id, t('New order created for renewal'));
 
     // Handle failed payment.
@@ -411,7 +418,6 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
     uc_recurring_hosted_paypal_ipn($order_id);
     $order = uc_order_load($new_order_id);
     $this->assertEqual($order_id, $new_order_id, t('No new order created for cancelled order.'));
-
   }
 
   /**

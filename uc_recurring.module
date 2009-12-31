@@ -588,7 +588,9 @@ function uc_recurring_renew($fee) {
   uc_order_update_status($new_id, 'pending');
 
   $new_order = uc_order_load($new_id);
-  if (uc_recurring_invoke($fee->fee_handler, 'renew callback', array($new_order, &$fee))) {
+
+  // Invoke renew callback, assume renew successful unless FALSE is returned.
+  if (uc_recurring_invoke($fee->fee_handler, 'renew callback', array($new_order, &$fee)) !== FALSE) {
     $new_order = uc_order_load($new_id);
 
     // Add a comment in the old and new order history.
