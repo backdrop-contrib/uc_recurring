@@ -13,9 +13,26 @@ function uc_recurring_admin() {
 
   $fees = array();
 
+  $header = array(
+    array('data' => t('ID'), 'field' => 'rfid'),
+    array('data' => t('Order'), 'field' => 'order_id'),
+    array('data' => t('Amount')),
+    array('data' => t('Next'), 'field' => 'next_charge', 'sort' => 'asc'),
+    array('data' => t('Interval')),
+    array('data' => t('Left')),
+    array('data' => t('Total')),
+    array('data' => t('Operations')),
+  );
+
   if (empty($item['map']['5'])) {
     // Get all recurring fees in the system.
-    $fees= uc_recurring_get_all_fees();
+    $order = tablesort_sql($header);
+    $element = 0;
+    if (empty($_GET['page'])) {
+      $index = db_result(db_query("SELECT COUNT(*) FROM {uc_recurring_users} WHERE next_charge < NOW()"));
+      $_GET['page'] = $index / variable_get('uc_order_number_displayed', 30);
+    }
+    $fees= uc_recurring_get_all_fees(TRUE, $order);
   }
   elseif ($item['map']['5'] == 'order') {
     // Get all recurring fees in an order.
@@ -29,17 +46,6 @@ function uc_recurring_admin() {
 
   $output = drupal_get_form('uc_recurring_admin_filter_form', $item);
   if ($fees) {
-    $header = array(
-      array('data' => t('ID'), 'sort' => 'desc'),
-      array('data' => t('Order')),
-      array('data' => t('Amount')),
-      array('data' => t('Next')),
-      array('data' => t('Interval')),
-      array('data' => t('Left')),
-      array('data' => t('Total')),
-      array('data' => t('Operations')),
-    );
-
     $context = array(
       'revision' => 'themed-original',
       'location' => 'recurring-admin',
@@ -54,13 +60,13 @@ function uc_recurring_admin() {
         format_date($fee->next_charge, 'small'),
         array('data' => check_plain($fee->regular_interval), 'nowrap' => 'nowrap'),
         $fee->remaining_intervals < 0 ? t('Until cancelled') : $fee->remaining_intervals,
-        $fee->remaining_intervals < 0 ? '' : $fee->remaining_intervals + $fee->charged_intervals,
+        $fee->remaining_intervals < 0 ? $fee->charged_intervals : $fee->remaining_intervals + $fee->charged_intervals,
         array('data' => implode(' ', $ops), 'nowrap' => 'nowrap'),
       );
     }
 
     $output .= theme('table', $header, $rows);
-    $output .= theme('pager', NULL, 10);
+    $output .= theme('pager', NULL, variable_get('uc_order_number_displayed', 30), 0);
 
   }
   $output .= l(t('Back to the full list'), 'admin/store/orders/recurring');

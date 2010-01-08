@@ -572,7 +572,6 @@ function uc_recurring_renew($fee) {
   $product->cost = 0;
   $product->manufacturer = '';
   $product->weight = 0;
-  $product->data = array();
 
   // Add a flag that this order is a recurring fee order, so it won't be
   // processed by uc_recurring_process_order().
@@ -1022,9 +1021,15 @@ function uc_recurring_get_fees_for_expiration() {
 /**
  * Get all fees is the system.
  */
-function uc_recurring_get_all_fees() {
+function uc_recurring_get_all_fees($pager = FALSE, $order = '') {
   $fees= array();
-  $result = db_query("SELECT * FROM {uc_recurring_users}");
+  $sql = "SELECT * FROM {uc_recurring_users}". $order;
+  if ($pager) {
+    $result = pager_query($sql, variable_get('uc_order_number_displayed', 30));
+  }
+  else {
+    $result = db_query($sql);
+  }
   while ($fee = db_fetch_object($result)) {
     $fees[$fee->rfid] = $fee;
     $fee->data = unserialize($fee->data);
