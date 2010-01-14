@@ -959,6 +959,9 @@ function uc_recurring_fee_cancel($rfid, $fee = NULL) {
 
   // Let other modules act on the canceled fee.
   module_invoke_all('uc_recurring_cancel', $fee);
+
+  $order = uc_order_load($fee->order_id);
+  ca_pull_trigger('uc_recurring_cancel', $order, $fee);
 }
 
 /**
