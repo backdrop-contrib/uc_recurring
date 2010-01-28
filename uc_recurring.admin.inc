@@ -236,7 +236,7 @@ function uc_recurring_admin_edit_form($form_state, $rfid, $fee_handler) {
       $form['next_charge']['next_charge_date'] = array(
         '#type' => 'date',
         '#title' => t('Date'),
-        '#default_value' => array('year' => date('Y', $fee->next_charge), 'month' => date('m', $fee->next_charge), 'day' => date('d', $fee->next_charge)),
+        '#default_value' => array('year' => date('Y', $fee->next_charge), 'month' => date('n', $fee->next_charge), 'day' => date('j', $fee->next_charge)),
       );
     }
   
