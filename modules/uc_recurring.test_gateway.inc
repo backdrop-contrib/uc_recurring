@@ -78,11 +78,11 @@ function uc_recurring_test_gateway_renew($order, &$fee) {
   uc_credit_cache('save', $fee->data['payment_details'], FALSE);
 
   // Run the charge.
-  $result = test_gateway_charge($order->order_id, $fee->fee_amount, NULL);
+  $result = test_gateway_charge($order->order_id, $order->order_total, NULL);
 
   // Handle the result.
   if ($result['success'] === TRUE) {
-    uc_payment_enter($order->order_id, 'credit', $fee->fee_amount, 0, $result['data'], t('Recurring fee payment.') .'<br />'. $result['comment']);
+    uc_payment_enter($order->order_id, 'credit', $order->order_total, 0, $result['data'], t('Recurring fee payment.') .'<br />'. $result['comment']);
   }
 
   return $result['success'];
