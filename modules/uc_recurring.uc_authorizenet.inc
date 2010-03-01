@@ -93,6 +93,11 @@ function uc_recurring_authorizenet_cim_renew($order, &$fee) {
  * Create form for updating credit card details for recurring fee.
  */
 function uc_recurring_authorizenet_cim_update_form($form_state, $rfid) {
+  // Load fee.
+  $fee = uc_recurring_fee_user_load($rfid);
+  // Load corresponding order.
+  $order = uc_order_load($fee->order_id);
+
   $form['rfid'] = array(
     '#type' => 'value',
     '#value' => $rfid,
