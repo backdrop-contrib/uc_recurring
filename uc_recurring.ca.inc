@@ -84,7 +84,7 @@ function uc_recurring_ca_predicate() {
   );
 
   $predicates['uc_recurring_renewal_email_completed'] = array(
-    '#title' => t('Notify customer when a renewal has occured.'),
+    '#title' => t('Notify customer when a renewal has occurred.'),
     '#trigger' => 'uc_recurring_renewal_complete',
     '#class' => 'notification',
     '#status' => 0,
