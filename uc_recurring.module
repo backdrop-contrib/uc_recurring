@@ -1530,7 +1530,7 @@ function uc_recurring_get_fee_ops($context, $fee) {
  *   The fee object passed by reference.
  */
 function uc_recurring_set_intervals(&$fee) {
-  $fee->next_charge = strtotime('+'. $fee->regular_interval) - $fee->data['extension'];
+  $fee->next_charge = strtotime('+'. $fee->regular_interval, $fee->next_charge) - $fee->data['extension'];
   if ($fee->remaining_intervals > 0) {
     $fee->remaining_intervals--;
   }
