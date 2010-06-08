@@ -87,13 +87,13 @@ function uc_recurring_admin_filter_form($form_state, $item) {
       'order' => t('Order ID'),
       'fee' => t('Fee ID'),
     ),
-    '#default_value' => $item['map'][5] == 'fee' ? 'fee' : 'order',
+    '#default_value' => (isset($item['map'][5]) && $item['map'][5] == 'fee') ? 'fee' : 'order',
     '#prefix' => '<div style="float: left; margin-right: 1em;">',
     '#suffix' => '</div>',
   );
   $form['id'] = array(
     '#type' => 'textfield',
-    '#default_value' => $item['map'][6],
+    '#default_value' => isset($item['map'][6]) ? $item['map'][6] : '',
     '#size' => 10,
     '#prefix' => '<div style="float: left; margin-right: 1em;">',
     '#suffix' => '</div>',
@@ -155,8 +155,6 @@ function uc_recurring_admin_charge_form_submit($form, &$form_state) {
   else {
     drupal_set_message(t('Attempt to charge recurring fee @fee failed.', array('@fee' => $rfid)), 'error');
   }
-
-  $form_state['redirect'] = 'admin/store/orders/recurring/view/fee/'. $rfid;
 }
 
 /**
@@ -326,8 +324,6 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
   if ($fee->remaining_intervals != 0 && $number_intervals == 0) {
     uc_recurring_fee_cancel($rfid, $fee);
   }
-
-  $form_state['redirect'] = 'admin/store/orders/recurring/view/fee/'. $rfid;
 }
 
 /**
