@@ -424,7 +424,7 @@ function uc_recurring_product_process_order($order, $data = array()) {
  * @param $fee
  *   Recurring fee Object.
  */
-function uc_recuring_product_recurring_renewal_pending(&$order, &$fee) {
+function uc_recurring_product_recurring_renewal_pending(&$order, &$fee) {
   if ($fee->module != 'uc_recurring_product') {
     return;
   }
