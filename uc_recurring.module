@@ -472,7 +472,7 @@ function uc_recurring_create_renewal_order($fee) {
  */
 function uc_recurring_charge_profile(&$fee, &$order = NULL) {
   if (!isset($order)) {
-    $order = uc_recurring_create_order_renewal($fee);
+    $order = uc_recurring_create_renewal_order($fee);
   }
   return uc_recurring_invoke($fee->fee_handler, 'renew callback', array($order, &$fee));
 }
