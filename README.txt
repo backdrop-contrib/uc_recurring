@@ -1,5 +1,5 @@
 uc_recurring
-~~~~~
+~~~~~~~~~~~~
 
 uc_recurring is a drupal module to provide recurring billing to the ubercart project.
 
@@ -40,6 +40,18 @@ emulates a credit card payment gateway and uc_recurring supports this gateway.
 If you are attempting to test if uc_recurring is setup correctly this is a good
 gateway to initally test against before setting up your own live gateway.
 
+If need to take snapshots of live databases with recurring fees setup ensure
+that cron is not running on your test site or recurring payments may be
+triggered from your test and live installs.
+
+A simple way to ensure recurring payments are not triggered on cron runs is to
+add the following php to your test sites settings.php
+
+<?php
+// disable ubercart recurring payments
+$conf['uc_recurring_trigger_renewals'] = FALSE;
+?>
+
 DEVELOPERS
 ~~~~~~~~~~
 This modules includes the file uc_recurring.api.php which is an attempt to
@@ -50,11 +62,15 @@ hook_recurring_info() function as this defines all the details uc_recurring
 needs to work with a new gateway.
 
 Credits
-*******
+~~~~~~~
 Ryan Szrama (http://www.commerceguys.com/)
 Chris Hood (http://www.univate.com.au/)
 
 LICENSE
 ~~~~~~~
+No guarantee is provided with this software, no matter how critical your
+information, module authors are not responsible for damage caused by this
+software or obligated in any way to correct problems you may experience.
 
 This software licensed under the GNU General Public License 2.0.
+http://www.gnu.org/licenses/gpl-2.0.txt
