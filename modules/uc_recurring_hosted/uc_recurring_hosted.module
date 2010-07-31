@@ -376,6 +376,11 @@ function uc_recurring_hosted_authorizenet_arb_process($order, &$fee) {
   }
   uc_order_comment_save($order->order_id, 0, t('Authorize.Net: ARB subscription created - @id', array('@id' => $data['subscriptionId'])));
 
+  // We need to save the rfid, we don't have it yet.
+  if (!$fee->rfid) {
+    $fee->rfid = uc_recurring_fee_user_save($fee);
+  }
+
   // Save the new credit reference to the database.
   uc_recurring_hosted_subscription_save($fee->rfid, $data['subscriptionId']);
 
