@@ -291,7 +291,6 @@ function uc_recurring_order_process_order($order, $recurring) {
       'uc_recurring_order' => array(
         'products' => $products,
       ),
-      'recurring orders' => array(),
     );
     $fee->attempts = 0;
     $fee->pfid = NULL;

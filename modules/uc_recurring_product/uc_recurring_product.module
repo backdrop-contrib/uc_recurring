@@ -383,7 +383,6 @@ function uc_recurring_product_process_order($order, $data = array()) {
         'model' => $product_fee->model,
         'nid' => $product_fee->nid,
         'qty' => $product['product']->qty,
-        'recurring orders' => array(),
         'extension' => 0,
       ) + $data;
       $fee->attempts = 0;
