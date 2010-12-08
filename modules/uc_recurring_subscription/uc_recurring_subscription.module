@@ -10,7 +10,7 @@
  */
 
 /**
- * Implementation of hook_help().
+ * Implements hook_help().
  */
 function uc_recurring_subscription_help($path, $arg) {
   switch ($path) {
@@ -21,21 +21,26 @@ function uc_recurring_subscription_help($path, $arg) {
 }
 
 /**
- * Implementation of hook_init().
+ * Implements hook_init().
  */
 function uc_recurring_subscription_init() {
   module_load_include('inc', 'uc_recurring_subscription', 'uc_recurring_subscription.ca');
 }
 
 /**
- * Implementation of hook_perm().
+ * Implements hook_permission().
  */
-function uc_recurring_subscription_perm() {
-  return array('manage subscriptions');
+function uc_recurring_subscription_permission() {
+  return array(
+    'manage subscriptions' => array(
+      'title' => t('manage subscriptions'),
+      'description' => t('TODO Add a description for \'manage subscriptions\''),
+    ),
+  );
 }
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function uc_recurring_subscription_menu() {
   $items = array();
@@ -109,7 +114,7 @@ function uc_recurring_subscription_menu() {
   );
 
   // override the ability to delete the subscription attribute
-  $items['admin/store/attributes/'. variable_get('uc_recurring_subscription_attribute', '') .'/delete'] = array(
+  $items['admin/store/attributes/' . variable_get('uc_recurring_subscription_attribute', '') . '/delete'] = array(
     'title' => 'Delete operation not Availabe',
     'page callback' => 'uc_recurring_subscription_attribute_delete',
     'access arguments' => array('administer attributes'),
@@ -122,8 +127,7 @@ function uc_recurring_subscription_menu() {
 /**
  *
  */
-function uc_recurring_subscription_menu_alter(&$items) {
-}
+function uc_recurring_subscription_menu_alter(&$items) { }
 
 /**
  *
@@ -135,25 +139,35 @@ function uc_recurring_subscription_attribute_delete() {
 /**
  * Load a recurring subscription object.
  */
-function uc_recurring_subscription_load($nid) {
-  $subscription = db_fetch_object(db_query("SELECT * FROM {uc_recurring_subscription} WHERE nid = %d", $nid));
-  if (!empty($subscription)) {
-    $subscription->access = empty($subscription->access) ? array() : unserialize($subscription->access);
+function uc_recurring_subscription_load($nidss) {
+  // ERROR: return statement not found in hook_load
+  foreach ($nids as $nid => &$nid) {
+    $subscription = db_query("SELECT * FROM {uc_recurring_subscription} WHERE nid = :nid", array(':nid' => : nid, '' => array(':nid' => $nid)))->fetchObject();
+    if (!empty($subscription)) {
+      $subscription->access = empty($subscription->access) ? array() : unserialize($subscription->access);
+    }
+    foreach ($subscription as $property => &$value) {
+      $nid->$property = $value;
+    }
   }
-  return $subscription;
 }
 
 /**
  * Delete recurring subscription.
  */
 function uc_recurring_subscription_delete($nid) {
-  db_query("DELETE FROM {uc_recurring_subcription} WHERE nid = %d", $nid);
+  // TODO Please review the conversion of this statement to the D7 database API syntax.
+  /* db_query("DELETE FROM {uc_recurring_subcription} WHERE nid = %d", $nid) */
+  db_delete('uc_recurring_subcription')
+  ->condition('nid', $nid)
+  ->execute();
 }
 
 /**
  * For recurring subscriptions we should.
  */
-function uc_recurring_subscription_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+function uc_recurring_subscription_nodeapi_OLD(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
   if ($node->type == variable_get('uc_recurring_subscription_product_class', 'uc_recurring_subscription')) {
     switch ($op) {
       case 'load':
@@ -169,8 +183,8 @@ function uc_recurring_subscription_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) 
 function _uc_recurring_subscription_get_product_features($product_id) {
   $attribute = uc_attribute_load(variable_get('uc_recurring_subscription_attribute', ''), $product_id, 'product');
 
-  $result = db_query("SELECT p.pfid from {uc_recurring_product} p LEFT JOIN {uc_product_features} f ON p.pfid=f.pfid WHERE f.nid = '%d'", $product_id);
-  while ($p = db_fetch_object($result)) {
+  $result = db_query("SELECT p.pfid from {uc_recurring_product} p LEFT JOIN {uc_product_features} f ON p.pfid=f.pfid WHERE f.nid = :f.nid", array(':f.nid' => $product_id));
+  foreach ($result as $p) {
     $product = uc_recurring_product_fee_load($p->pfid);
 
     $option_name = _uc_recurring_subscription_create_attribute_option($product->regular_interval_value, $product->regular_interval_unit);
@@ -199,21 +213,21 @@ function _uc_recurring_subscription_option($option_name) {
 }
 
 /**
- * Implementation of hook_theme()
+ * Implements hook_theme().
  */
 function uc_recurring_subscription_theme() {
   return array(
     'uc_recurring_subscription_item' => array(
-      'arguments' => array('form' => NULL),
+      'render element' => 'form',
     ),
     'uc_recurring_subscription_products' => array(
-      'arguments' => array('form' => NULL),
+      'render element' => 'form',
     ),
     'uc_recurring_subscription_role_items' => array(
-      'arguments' => array('form' => NULL),
+      'render element' => 'form',
     ),
     'uc_recurring_subscription_og_items' => array(
-      'arguments' => array('form' => NULL),
+      'render element' => 'form',
     ),
   );
 }
@@ -227,7 +241,7 @@ function _uc_recurring_subscription_create_attribute_option($value, $interval) {
       'days' => t('Daily'),
       'weeks' => t('Weekly'),
       'months' => t('Monthly'),
-      'years' => t('Yearly')
+      'years' => t('Yearly'),
     );
     return $intervals[$interval];
   }
@@ -238,7 +252,10 @@ function _uc_recurring_subscription_create_attribute_option($value, $interval) {
  * Find attribute option with a given aid and name
  */
 function _uc_recurring_subscription_attribute_option_by_name($aid, $name) {
-  $option = db_fetch_object(db_query("SELECT * from {uc_attribute_options} WHERE aid = %d AND name = '%s'", $aid, $name));
+  $option = db_query("SELECT * from {uc_attribute_options} WHERE aid = :aid AND name = :name", array(
+      ':aid' => $aid,
+      ':name' => $name,
+    )))->fetchObject();
   // If it doesn't exist we create it.
   if (empty($option)) {
     $option = new stdClass();
@@ -262,7 +279,7 @@ function _uc_recurring_subscription_product_feature_sort($a, $b) {
 }
 
 /**
- * Implementation of hook_form_alter().
+ * Implements hook_form_alter().
  */
 function uc_recurring_subscription_form_alter(&$form, $form_state, $form_id) {
   $aid = variable_get('uc_recurring_subscription_attribute', '');
@@ -307,14 +324,14 @@ function uc_recurring_subscription_uc_recurring_access_apply($fee, $product) {
     if (empty($access)) {
       $access = new stdClass();
       $access->uid = $fee->uid;
-      $access->created = time();
+      $access->created = REQUEST_TIME;
       $access->access_type = 'role';
       $access->id = $rid;
       $access->new = TRUE;
       $access->time_applied = 0;
       $access->time_owed = 0;
     }
-    $interval = $fee->next_charge - time();
+    $interval = $fee->next_charge - REQUEST_TIME;
     $access->time_applied += min($interval, variable_get('uc_recurring_access_interval', '31536000'));
     $access->time_owed += $interval;
     uc_recurring_access_user_save($access);

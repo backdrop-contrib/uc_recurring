@@ -30,7 +30,10 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
   function testRecurringPaypal() {
     $this->drupalLogin($this->user_recurring_admin);
 
-    $settings = array('uc_payment_method_paypal_wps_checkout' => TRUE, 'uc_paypal_wps_email' => 'paypal@example.com');
+    $settings = array(
+      'uc_payment_method_paypal_wps_checkout' => TRUE,
+      'uc_paypal_wps_email' => 'paypal@example.com',
+    );
     $this->drupalPost('admin/store/settings/payment/edit/methods', $settings, t('Save configuration'));
 
     // Select mock gateway for payments.
@@ -46,23 +49,31 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
     variable_set('uc_paypal_wps_checkout_button', t('Submit order'));
     variable_set('uc_paypal_wps_debug_ipn', TRUE);
 
-    $this->drupalPost('node/'.$product->nid, array(), t('Add to cart'));
+    $this->drupalPost('node/' . $product->nid, array(), t('Add to cart'));
     $this->assertRaw($product->title, t('The product name has been displayed on the cart page.'));
     $this->assertRaw('added to', t('The product name has been displayed on the cart page.'));
     $this->checkout(array('panes[delivery][delivery_postal_code]' => '12345', 'panes[billing][billing_postal_code]' => '12345'));
     $order_id = $this->lastCreatedOrderId();
     $this->assertEqual($order_id, 1, t('First order created.'));
 
-    $url = url('uc_recurring_hosted/paypal/ipn/'. $order_id, array('absolute' => TRUE));
+    $url = url('uc_recurring_hosted/paypal/ipn/' . $order_id, array('absolute' => TRUE));
     $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
 
     $post = $this->paypal_message('subscr_signup', $order_id);
 
-    $response = drupal_http_request($url, $headers, 'POST', http_build_query($post, '', '&'));
+    $response = drupal_http_request($url, array('headers' => array('headers' => array(
+          'headers' => $headers,
+          'method' => 'POST',
+          'data' => http_build_query($post, '', '&'),
+        ))));
     $order = uc_order_load($order_id);
 
     $post = $this->paypal_message('subscr_payment', $order_id, 20);
-    $response = drupal_http_request($url, $headers, 'POST', http_build_query($post, '', '&'));
+    $response = drupal_http_request($url, array('headers' => array('headers' => array(
+          'headers' => $headers,
+          'method' => 'POST',
+          'data' => http_build_query($post, '', '&'),
+        ))));
     $new_order_id = $this->lastCreatedOrderId();
     $order = uc_order_load($new_order_id);
 
@@ -70,21 +81,33 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
 
     // Renew order.
     $post = $this->paypal_message('subscr_payment', $order_id, 50);
-    $response = drupal_http_request($url, $headers, 'POST', http_build_query($post, '', '&'));
+    $response = drupal_http_request($url, array('headers' => array('headers' => array(
+          'headers' => $headers,
+          'method' => 'POST',
+          'data' => http_build_query($post, '', '&'),
+        ))));
     $new_order_id = $this->lastCreatedOrderId();
     $order = uc_order_load($new_order_id);
     $this->assertTrue(uc_payment_balance($order) <= 0, t('Order @order_id payment processed', array('@order_id' => $new_order_id)));
-    $this->assertEqual($order_id+1, $new_order_id, t('New order created for renewal'));
+    $this->assertEqual($order_id + 1, $new_order_id, t('New order created for renewal'));
 
     // Handle failed payment.
     $post = $this->paypal_message('subscr_failed', $order_id, 50);
-    $response = drupal_http_request($url, $headers, 'POST', http_build_query($post, '', '&'));
+    $response = drupal_http_request($url, array('headers' => array('headers' => array(
+          'headers' => $headers,
+          'method' => 'POST',
+          'data' => http_build_query($post, '', '&'),
+        ))));
     $new_order_id = $this->lastCreatedOrderId();
-    $this->assertEqual($order_id+1, $new_order_id, t('No new order for failed payment'));
+    $this->assertEqual($order_id + 1, $new_order_id, t('No new order for failed payment'));
 
     // Handle cancellation.
     $post = $this->paypal_message('subscr_cancel', $order_id, 50);
-    $response = drupal_http_request($url, $headers, 'POST', http_build_query($post, '', '&'));
+    $response = drupal_http_request($url, array('headers' => array('headers' => array(
+          'headers' => $headers,
+          'method' => 'POST',
+          'data' => http_build_query($post, '', '&'),
+        ))));
     $order = uc_order_load($new_order_id);
 
     $fee = $this->getSingleRecurringFeeFromOrder($order_id);
@@ -102,7 +125,7 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
     $lastname = 'lastname';
     $firstname = 'firstname';
     $payer_email = 'email@example.com';
-    $order_title = 'Order '. $order_id;
+    $order_title = 'Order ' . $order_id;
     $site_email = 'site@example.com';
     $messages = array(
       'subscr_signup' => array(
@@ -122,7 +145,7 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
         'first_name' => $firstname,
         'receiver_email' => $site_email,
         'payer_id' => '76VZLCDJFJF34',
-        'invoice' => $order_id .'-QKO',
+        'invoice' => $order_id . '-QKO',
         'reattempt' => '1',
         'subscr_date' => '06:04:49 Aug 31, 2009 PDT',
         'charset' => 'windows-1252',
@@ -151,7 +174,7 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
         'txn_id' => '58H79324DK124573U',
         'receiver_email' => $site_email,
         'first_name' => $firstname,
-        'invoice' => $order_id .'-EPK',
+        'invoice' => $order_id . '-EPK',
         'payer_id' => '6XGCGCPH8W534',
         'receiver_id' => 'GWA2A76YCPXVQ',
         'payment_status' => 'Completed',
@@ -176,7 +199,7 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
         'first_name' => $firstname,
         'receiver_email' => $site_email,
         'payer_id' => 'WAKK3E8Z9J3E',
-        'invoice' => $order_id .'-BDK',
+        'invoice' => $order_id . '-BDK',
         'retry_at' => '06:21:12 Sep 02, 2009 PDT',
         'payer_business_name' => 'Business',
         'mc_gross' => '50.00',
@@ -200,7 +223,7 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
         'first_name' => $firstname,
         'receiver_email' => $site_email,
         'payer_id' => 'WAKK3E8Z9J3EE',
-        'invoice' => $order_id .'-BDK',
+        'invoice' => $order_id . '-BDK',
         'reattempt' => '1',
         'payer_business_name' => 'Business',
         'subscr_date' => '11:50:37 Sep 02, 2009 PDT',
@@ -225,7 +248,7 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
         'first_name' => $firstname,
         'receiver_email' => $site_email,
         'payer_id' => 'SJKZMSLWS4J54',
-        'invoice' => $order_id .'-MSX',
+        'invoice' => $order_id . '-MSX',
         'charset' => 'windows-1252',
         'notify_version' => '2.8',
       ),

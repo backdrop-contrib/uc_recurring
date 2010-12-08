@@ -5,5 +5,10 @@ dependencies[] = uc_recurring
 dependencies[] = uc_recurring_product
 dependencies[] = uc_attribute
 package = Ubercart - recurring
-core = 6.x
+core = 7.x
 php = 5.0
+
+files[] = uc_recurring_subscription.admin.inc
+files[] = uc_recurring_subscription.ca.inc
+files[] = uc_recurring_subscription.install
+files[] = uc_recurring_subscription.module

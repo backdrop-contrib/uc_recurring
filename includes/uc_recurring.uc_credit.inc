@@ -7,7 +7,7 @@
  */
 
 /**
- * Implementation of hook_recurring_info().
+ * Implements hook_recurring_info().
  */
 function uc_recurring_uc_credit_recurring_info() {
   $gateway = uc_credit_default_gateway();

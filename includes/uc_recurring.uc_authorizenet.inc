@@ -7,7 +7,7 @@
  */
 
 /**
- * Implementation of hook_recurring_info().
+ * Implements hook_recurring_info().
  */
 function uc_recurring_uc_authorizenet_recurring_info() {
   $items['authorizenet_cim'] = array(
@@ -20,7 +20,7 @@ function uc_recurring_uc_authorizenet_recurring_info() {
     'saved profile' => TRUE,
     'menu' => array(
       'charge' => UC_RECURRING_MENU_DEFAULT,
-      'edit'   => UC_RECURRING_MENU_DEFAULT,
+      'edit' => UC_RECURRING_MENU_DEFAULT,
       'update' => array(
         'title' => 'Update Account Details',
         'page arguments' => array('uc_recurring_authorizenet_cim_update_form'),
@@ -115,7 +115,7 @@ function uc_recurring_authorizenet_cim_update_form($form_state, $rfid) {
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Update'),
-    '#suffix' => l(t('Cancel'), 'user/'. $user->uid),
+    '#suffix' => l(t('Cancel'), 'user/' . $user->uid),
   );
 
   return $form;
@@ -134,7 +134,7 @@ function uc_recurring_authorizenet_cim_update_form_submit(&$form, &$form_state) 
   }
   else {
     drupal_set_message('Account updated.');
-    $form_state['redirect'] = 'user/'. $form_state['values']['uid'];
+    $form_state['redirect'] = 'user/' . $form_state['values']['uid'];
   }
 }
 
@@ -175,14 +175,14 @@ function _uc_recurring_uc_authorizenet_cim_paymentprofile_update_request($order,
   }
   else {
     $request = array(
-      'refId' => substr($order->order_id .'-'. time(), 0, 20),
+      'refId' => substr($order->order_id . '-' . REQUEST_TIME, 0, 20),
       'customerProfileId' => $profile['customerProfileId'],
       'paymentProfile' => array(
         'billTo' => _uc_authorize_cim_xml_billto($order),
         'payment' => array(
           'creditCard' => array(
             'cardNumber' => $order->payment_details['cc_number'],
-            'expirationDate' => $order->payment_details['cc_exp_year'] .'-'. str_pad($order->payment_details['cc_exp_month'], 2, '0', STR_PAD_LEFT),
+            'expirationDate' => $order->payment_details['cc_exp_year'] . '-' . str_pad($order->payment_details['cc_exp_month'], 2, '0', STR_PAD_LEFT),
           ),
         ),
         'customerPaymentProfileId' => $profile['customerPaymentProfileId'],
@@ -208,7 +208,10 @@ function uc_recurring_authorizenet_cim_profile_form($form_state, $rfid) {
     '#value' => t('The profile details below were return from Authorize.net'),
   );
   $form['profile'] = array(
-    '#value' => theme('table', $header, $rows),
+    '#value' => theme('table', array('header' => array('header' => array(
+          'header' => $header,
+          'rows' => $rows,
+        )))),
   );
 
   return $form;

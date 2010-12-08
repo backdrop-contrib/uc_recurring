@@ -10,7 +10,7 @@
  */
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function uc_recurring_order_menu() {
   $items['admin/store/settings/orders/edit/recurring'] = array(
@@ -35,7 +35,7 @@ function uc_recurring_order_settings_form($form) {
   foreach ($intervals as $int => $value) {
     $options[] = $int . '|' . $value;
   }
-  $options = !empty($options) ? implode("\n", $options): '';
+  $options = !empty($options) ? implode("\n", $options) : '';
 
   $form = array();
   $form['interval_options'] = array(
@@ -48,18 +48,22 @@ function uc_recurring_order_settings_form($form) {
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value'=> t('Submit'),
+    '#value' => t('Submit'),
   );
 
   return $form;
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function uc_recurring_order_settings_form_validate($form, &$form_state) {
   $options = preg_split('/[\r\n]+/', $form_state['values']['interval_options']);
   foreach ($options as $key => $value) {
     $i = explode('|', $value);
     if (strtotime($i[0])) {
-      $intervals[$i[0]] = (isset($i[1]) && $i[1] !=='') ? $i[1] : $i[0];
+      $intervals[$i[0]] = (isset($i[1]) && $i[1] !== '') ? $i[1] : $i[0];
     }
     else {
       $errors .= t('!error is not valid strtotime format <br />', array('!error' => $i[0]));
@@ -71,6 +75,10 @@ function uc_recurring_order_settings_form_validate($form, &$form_state) {
   $form_state['values']['intervals'] = $intervals;
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function uc_recurring_order_settings_form_submit($form, &$form_state) {
   variable_set('uc_recurring_order_interval_options', $form_state['values']['intervals']);
   drupal_set_message(t('The recurring options have been saved.'));
@@ -84,14 +92,14 @@ function uc_recurring_order_settings_form_submit($form, &$form_state) {
  */
 function uc_recurring_order_get_intervals() {
   $options = variable_get('uc_recurring_order_interval_options', array());
-  foreach($options as $key => $option) {
+  foreach ($options as $key => $option) {
     $options[check_plain($key)] = check_plain($option);
   }
   return $options;
 }
 
 /**
- * Implementation of hook_cart_pane().
+ * Implements hook_cart_pane().
  */
 function uc_recurring_order_cart_pane($items) {
   $panes[] = array(
@@ -108,7 +116,7 @@ function uc_recurring_order_cart_pane($items) {
 /**
  * Cart pane recurring form.
  */
-function uc_recurring_order_pane_cart($form_state) {
+function uc_recurring_order_pane_cart($form, $form_state) {
   $intervals = uc_recurring_order_get_intervals();
 
   if (empty($intervals)) {
@@ -129,11 +137,15 @@ function uc_recurring_order_pane_cart($form_state) {
   return $form;
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function uc_recurring_order_pane_cart_submit($form, &$form_state) {
   if ($form_state['values']['recurring_option']) {
     $recurring_option = $form_state['values']['recurring_option'];
-    $next_renewal = strtotime('+'. $recurring_option);
-    if ($next_renewal > time()) {
+    $next_renewal = strtotime('+' . $recurring_option);
+    if ($next_renewal > REQUEST_TIME) {
       $_SESSION['recurring_option'] = $recurring_option;
       drupal_set_message(t('Your next order after this will occur on @next.', array('@recurring' => $recurring_options[$recurring], '@next' => format_date($next_renewal, 'short'))));
     }
@@ -144,7 +156,7 @@ function uc_recurring_order_pane_cart_submit($form, &$form_state) {
 }
 
 /**
- * Implementation of hook_checkout_pane().
+ * Implements hook_checkout_pane().
  *
  * Show a pane just above the order total that allows shoppers to select
  * recurring option for the order.
@@ -204,8 +216,8 @@ function uc_recurring_order_pane_checkout($op, &$arg1, $arg2) {
         }
       }
       $recurring = $arg2['recurring_option'];
-      $next_renewal = strtotime('+'. $recurring);
-      if ($next_renewal > time()) {
+      $next_renewal = strtotime('+' . $recurring);
+      if ($next_renewal > REQUEST_TIME) {
         $arg1->data['recurring_option'] = $recurring;
       }
       else {
@@ -215,10 +227,10 @@ function uc_recurring_order_pane_checkout($op, &$arg1, $arg2) {
 
     case 'review':
       if ($arg1->data['recurring_option']) {
-        $next_renewal = strtotime('+'. $arg1->data['recurring_option']);
+        $next_renewal = strtotime('+' . $arg1->data['recurring_option']);
         $review[] = array(
           'title' => t('Recurring Order'),
-          'data' => t('Your next order after this will occur on @next.', array('@recurring' => $arg1->data['recurring_option'], '@next' => format_date($next_renewal, 'short')))
+          'data' => t('Your next order after this will occur on @next.', array('@recurring' => $arg1->data['recurring_option'], '@next' => format_date($next_renewal, 'short'))),
         );
       }
       return $review;
@@ -226,26 +238,33 @@ function uc_recurring_order_pane_checkout($op, &$arg1, $arg2) {
 }
 
 /**
- * Implementation of hook_order().
+ * Implements hook_order().
  */
 function uc_recurring_order_order($op, &$arg1, $arg2) {
   switch ($op) {
     // TODO: Allow admin to create a recurring order from "create order" page.
     case 'submit':
       $recurring = $arg1->data['recurring_option'];
-      $next_renewal = strtotime('+'. $recurring);
-      if ($next_renewal > time() && variable_get('uc_recurring_checkout_process', TRUE)) {
+      $next_renewal = strtotime('+' . $recurring);
+      if ($next_renewal > REQUEST_TIME && variable_get('uc_recurring_checkout_process', TRUE)) {
         if (uc_recurring_order_process_order($arg1, $recurring) === FALSE) {
           return array(array('pass' => FALSE, 'message' => t('Your order cannot be completed, because we could not process your recurring payment. Please review your payment details and contact us to complete your order if the problem persists.')));
         }
       }
       break;
     case 'save':
-      db_query("UPDATE {uc_recurring_users} SET fee_amount = %f WHERE order_id = %d", uc_order_get_total($arg1), $arg1->order_id);
+      // TODO Please review the conversion of this statement to the D7 database API syntax.
+      /* db_query("UPDATE {uc_recurring_users} SET fee_amount = %f WHERE order_id = %d", uc_order_get_total($arg1), $arg1->order_id) */
+      db_update('uc_recurring_users')
+  ->fields(array(
+        'fee_amount' => uc_order_get_total($arg1),
+      ))
+  ->condition('order_id', $arg1->order_id)
+  ->execute();
       if (db_affected_rows !== 0) {
         uc_order_comment_save($arg1->order_id, 0, t('The recurring order amount was updated.'), 'admin');
       }
-    break;
+      break;
   }
 }
 
@@ -266,7 +285,7 @@ function uc_recurring_order_process_order($order, $recurring) {
 
     $fee->fee_handler = $fee_handler['fee handler'];
 
-    $fee->created = time();
+    $fee->created = REQUEST_TIME;
     $fee->order_id = $order->order_id;
 
     // If the product fee amount is 0, it means we need to use the product
@@ -276,9 +295,9 @@ function uc_recurring_order_process_order($order, $recurring) {
     // Add the product's title as the order title.
     $fee->fee_title = t('Renewal of product @title', array('@title' => $product['product']->title));
 
-    $fee->next_charge = strtotime('+'. $recurring);
+    $fee->next_charge = strtotime('+' . $recurring);
     $fee->regular_interval = $recurring;
-    $fee->remaining_intervals = -1;  // hard coded to unlimited
+    $fee->remaining_intervals = -1; // hard coded to unlimited
     $fee->charged_intervals = 0;
 
     $products = $order->products;
@@ -301,7 +320,7 @@ function uc_recurring_order_process_order($order, $recurring) {
 
     if (uc_recurring_invoke($fee->fee_handler, 'process callback', array($order, &$fee))) {
       $rfid = uc_recurring_fee_user_save($fee);
-      uc_order_comment_save($order->order_id, $user->uid, t('Recurring fee <a href="@recurring-view-fee">@rfid</a> added to order.', array('@recurring-view-fee' => url('admin/store/orders/recurring/view/fee/'. $rfid), '@rfid' => $rfid)));
+      uc_order_comment_save($order->order_id, $user->uid, t('Recurring fee <a href="@recurring-view-fee">@rfid</a> added to order.', array('@recurring-view-fee' => url('admin/store/orders/recurring/view/fee/' . $rfid), '@rfid' => $rfid)));
     }
     else {
       return FALSE;
@@ -311,15 +330,16 @@ function uc_recurring_order_process_order($order, $recurring) {
 }
 
 /**
- * Implements hook_recurring_renewal_pending()
+ * Implements hook_recurring_renewal_pending().
  */
 function uc_recurring_order_recurring_renewal_pending(&$order, $fee) {
   // recreate order
   if (!empty($fee->data['uc_recurring_order'])) {
     $order->products = $fee->data['uc_recurring_order']['products'];
-    $result = db_query("SELECT * FROM {uc_order_line_items} WHERE order_id = %d", $fee->order_id);
-    while ($line_item = db_fetch_array($result)) {
-      uc_order_line_item_add($order->order_id, $line_item['type'], $line_item['title'], $line_item['amount'], $line_item['weight'], $line_item['data']);
+    $result = db_query("SELECT * FROM {uc_order_line_items} WHERE order_id = :order_id", array(':order_id' => $fee->order_id),
+      )));
+    foreach ($result as $line_item) {
+      uc_order_line_item_add($order->order_id, $line_item->type, $line_item->title, $line_item->amount, $line_item->weight, $line_item->data);
     }
   }
 }
@@ -344,7 +364,10 @@ function uc_recurring_order_form_uc_recurring_admin_edit_form_alter(&$form, $for
     $form['products'] = array(
       '#type' => 'fieldset',
       '#title' => t('Products'),
-      '#description' => theme('table', array('Product', 'Quantity', 'Price'), $rows),
+      '#description' => theme('table', array('header' => array('header' => array(
+            'header' => array('Product', 'Quantity', 'Price'),
+            'rows' => $rows,
+          )))),
       '#weight' => -10,
     );
   }

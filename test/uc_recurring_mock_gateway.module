@@ -7,7 +7,7 @@
  */
 
 /**
- * Implementation of hook_payment_method().
+ * Implements hook_payment_method().
  */
 function uc_recurring_mock_gateway_payment_method() {
   $methods[] = array(
@@ -26,7 +26,7 @@ function uc_recurring_mock_gateway_payment_method() {
 
 
 /**
- * Implements hook_order
+ * Implements hook_order().
  */
 function uc_recurring_mock_gateway_order($ops, $arg1, $arg2) {
   switch ($ops) {
@@ -39,7 +39,7 @@ function uc_recurring_mock_gateway_order($ops, $arg1, $arg2) {
 }
 
 /**
- * Implementation of hook_recurring_info().
+ * Implements hook_recurring_info().
  */
 function uc_recurring_mock_gateway_recurring_info() {
   $items['mock_gateway'] = array(

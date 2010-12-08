@@ -7,7 +7,7 @@
  */
 
 /**
- * Implementation of hook_recurring_info().
+ * Implements hook_recurring_info().
  */
 function uc_recurring_uc_payment_pack_recurring_info() {
   $items['check'] = array(

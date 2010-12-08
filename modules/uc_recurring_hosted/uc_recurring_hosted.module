@@ -16,7 +16,7 @@ define('UC_RECURRING_FEE_STATUS_SUSPENDED_NOPROFILE', 20);
  *****************************************************************************/
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function uc_recurring_hosted_menu() {
   $items = array();
@@ -27,7 +27,7 @@ function uc_recurring_hosted_menu() {
       'page callback' => 'uc_recurring_hosted_paypal_ipn',
       'access callback' => 'uc_paypal_ipn_access',
       'type' => MENU_CALLBACK,
-      'file' => 'uc_recurring_hosted.paypal_ipn.inc'
+      'file' => 'uc_recurring_hosted.paypal_ipn.inc',
     );
     $items['uc_recurring_hosted/paypal/ipn/%'] = array(
       'title' => 'PayPal IPN',
@@ -35,7 +35,7 @@ function uc_recurring_hosted_menu() {
       'page arguments' => array(3),
       'access callback' => 'uc_paypal_ipn_access',
       'type' => MENU_CALLBACK,
-      'file' => 'uc_recurring_hosted.paypal_ipn.inc'
+      'file' => 'uc_recurring_hosted.paypal_ipn.inc',
     );
 
     // A mock url for emulating the paypal IPN.
@@ -44,7 +44,7 @@ function uc_recurring_hosted_menu() {
       'page callback' => '_uc_recurring_hosted_paypal_mock_web_page',
       'access callback' => TRUE,
       'type' => MENU_CALLBACK,
-      'file' => 'uc_recurring_hosted.paypal_ipn.inc'
+      'file' => 'uc_recurring_hosted.paypal_ipn.inc',
     );
   }
 
@@ -56,7 +56,7 @@ function uc_recurring_hosted_menu() {
  *****************************************************************************/
 
 /**
- * Implementation of hook_recurring_info().
+ * Implements hook_recurring_info().
  */
 function uc_recurring_hosted_recurring_info() {
   // AUTHORIZE.NET ARB
@@ -150,10 +150,16 @@ function uc_recurring_hosted_subscription_load($id, $type = 'rfid') {
   $return = array();
 
   if ($type == 'rfid') {
-    $return = db_fetch_object(db_query("SELECT * FROM {uc_recurring_hosted} WHERE rfid = %d", $id));
+    $return = db_fetch_object(db_query("SELECT * FROM {uc_recurring_hosted} WHERE rfid = :rfid", array(':rfid' => : rfid, '' => array(
+        ':rfid' => : rfid,
+        '' => array(':rfid' => $id),
+      ))));
   }
   elseif ($type == 'subscription_id') {
-    $return = db_fetch_object(db_query("SELECT * FROM {uc_recurring_hosted} WHERE subscription_id = '%s'", $id));
+    $return = db_fetch_object(db_query("SELECT * FROM {uc_recurring_hosted} WHERE subscription_id = :subscription_id", array(':subscription_id' => : subscription_id, '' => array(
+        ':subscription_id' => : subscription_id,
+        '' => array(':subscription_id' => $id),
+      ))));
   }
 
   drupal_alter('uc_recurring_hosted_subscription', $object);
@@ -189,17 +195,25 @@ function uc_recurring_hosted_subscription_delete($id, $type = 'rfid') {
   module_invoke_all('uc_recurring_hosted_subscription_delete', $id, $type);
 
   if ($type == 'rfid') {
-    $return = db_query("DELETE FROM {uc_recurring_hosted} WHERE rfid = %d", $id);
+    // TODO Please review the conversion of this statement to the D7 database API syntax.
+    /* db_query("DELETE FROM {uc_recurring_hosted} WHERE rfid = %d", $id) */
+    $return = db_delete('uc_recurring_hosted')
+  ->condition('rfid', $id)
+  ->execute();
   }
   else {
-    $return = db_query("DELETE FROM {uc_recurring_hosted} WHERE subscription_id = '%s'", $id);
+    // TODO Please review the conversion of this statement to the D7 database API syntax.
+    /* db_query("DELETE FROM {uc_recurring_hosted} WHERE subscription_id = '%s'", $id) */
+    $return = db_delete('uc_recurring_hosted')
+  ->condition('subscription_id', $id)
+  ->execute();
   }
 }
 
 /**
- * Implementation of hook_recurring_access().
+ * Implements hook_recurring_access().
  */
-function uc_recurring_hosted_recurring_access($fee, $op, $account){
+function uc_recurring_hosted_recurring_access($fee, $op, $account) {
   if ($fee->fee_handler == 'paypal_wpp') {
     switch ($op) {
       case 'view agreement':
@@ -300,7 +314,7 @@ function uc_recurring_hosted_authorizenet_arb_process($order, &$fee) {
 
   // Build the data array for the request.
   $data = array(
-    'refId' => substr($order->order_id .'-'. time(), 0, 20),
+    'refId' => substr($order->order_id . '-' . REQUEST_TIME, 0, 20),
     'subscription' => array(
       'name' => substr(t('Order @order_id', array('@order_id' => $order->order_id)), 0, 50),
       'paymentSchedule' => array(
@@ -355,13 +369,13 @@ function uc_recurring_hosted_authorizenet_arb_process($order, &$fee) {
   // Add the payment information to the data array based on the payment method.
   if ($order->payment_method == 'credit') {
     if ($order->payment_details['cc_exp_month'] < 10) {
-      $order->payment_details['cc_exp_month'] = '0'. $order->payment_details['cc_exp_month'];
+      $order->payment_details['cc_exp_month'] = '0' . $order->payment_details['cc_exp_month'];
     }
 
     $data['subscription']['payment'] = array(
       'creditCard' => array(
         'cardNumber' => $order->payment_details['cc_number'],
-        'expirationDate' => $order->payment_details['cc_exp_year'] .'-'. $order->payment_details['cc_exp_month'],
+        'expirationDate' => $order->payment_details['cc_exp_year'] . '-' . $order->payment_details['cc_exp_month'],
       ),
     );
   }
@@ -417,7 +431,7 @@ function uc_recurring_hosted_authorizenet_arb_renew($order, $fee) {
 }
 
 /**
- * Implementation of hook_uc_auth_arb_payment().
+ * Implements hook_uc_auth_arb_payment().
  * Called during an ARB silent post.
  */
 function uc_recurring_hosted_uc_auth_arb_payment($post) {
@@ -452,7 +466,7 @@ function uc_recurring_hosted_authorizenet_arb_cancel($order, &$fee) {
 
   // Build the data array for the request.
   $data = array(
-    'refId' => substr($order->order_id .'-'. time(), 0, 20),
+    'refId' => substr($order->order_id . '-' . REQUEST_TIME, 0, 20),
     'subscriptionId' => $subscription_id,
   );
 
@@ -502,7 +516,7 @@ function uc_recurring_hosted_authorizenet_arb_update_form($form_state, $rfid) {
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Update'),
-    '#suffix' => l(t('Cancel'), 'user/'. $user->uid),
+    '#suffix' => l(t('Cancel'), 'user/' . $user->uid),
   );
 
   return $form;
@@ -518,7 +532,7 @@ function uc_recurring_hosted_authorizenet_arb_update_form_submit(&$form, &$form_
   $subscription_id = end(array_keys($order->data['cc_txns']['references']));
 
   if ($order->payment_details['cc_exp_month'] < 10) {
-    $order->payment_details['cc_exp_month'] = '0'. $order->payment_details['cc_exp_month'];
+    $order->payment_details['cc_exp_month'] = '0' . $order->payment_details['cc_exp_month'];
   }
 
   // Build the data array for the request.
@@ -526,14 +540,14 @@ function uc_recurring_hosted_authorizenet_arb_update_form_submit(&$form, &$form_
     'payment' => array(
       'creditCard' => array(
         'cardNumber' => $order->payment_details['cc_number'],
-        'expirationDate' => $order->payment_details['cc_exp_year'] .'-'. $order->payment_details['cc_exp_month'],
+        'expirationDate' => $order->payment_details['cc_exp_year'] . '-' . $order->payment_details['cc_exp_month'],
       ),
     ),
   );
 
   if (uc_authorizenet_arb_update($subscription_id, $updates, $order->order_id)) {
     drupal_set_message(t('Account updated.'));
-    $form_state['redirect'] = 'user/'. $form_state['values']['uid'];
+    $form_state['redirect'] = 'user/' . $form_state['values']['uid'];
   }
   else {
     drupal_set_message(t('Account update failed.'), 'error');
@@ -587,7 +601,7 @@ function uc_recurring_hosted_form_uc_paypal_wps_form_alter(&$form, $form_state) 
     }
 
     // IPN control notify URL
-    $data['notify_url'] = url('uc_recurring_hosted/paypal/ipn/'. $order->order_id, array('absolute' => TRUE));
+    $data['notify_url'] = url('uc_recurring_hosted/paypal/ipn/' . $order->order_id, array('absolute' => TRUE));
 
     $data['cmd'] = '_xclick-subscriptions';
     $data['item_name'] = t('Order @order_id at !store', array('@order_id' => $order->order_id, '!store' => variable_get('uc_store_name', url('<front>', array('absolute' => TRUE)))));
@@ -611,7 +625,10 @@ function uc_recurring_hosted_form_uc_paypal_wps_form_alter(&$form, $form_state) 
 
     foreach ($data as $name => $value) {
       if (!empty($value)) {
-        $form[$name] = array('#type' => 'hidden', '#value' => $value);
+        $form[$name] = array(
+          '#type' => 'hidden',
+          '#value' => $value,
+        );
       }
     }
   }
@@ -671,7 +688,10 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
   ) {
     // Get a default SKU if none was supplied.
     if (empty($fee->model)) {
-      $fee->model = db_result(db_query("SELECT model FROM {uc_products} WHERE nid = %d", $fee->nid));
+      $fee->model = db_query("SELECT model FROM {uc_products} WHERE nid = :nid", array(':nid' => : nid, '' => array(
+          ':nid' => : nid,
+          '' => array(':nid' => $fee->nid),
+        )))->fetchField();
     }
     watchdog('uc_recurring', 'Product @sku has invalid interval settings for PayPal - @length @unit', array('@sku' => $fee->model, '@length' => $length, '@unit' => $unit), WATCHDOG_ERROR);
     return FALSE;
@@ -682,18 +702,22 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
   if ($unit == 'semimonth') {
     $unit = 'SemiMonth';
   }
-  else $unit = ucfirst(substr($unit, 0, -1));
+  else {
+    $unit = ucfirst(substr($unit, 0, -1));
+  }
   if ($trial_unit == 'semimonth') {
     $trial_unit = 'SemiMonth';
   }
-  else $trial_unit = ucfirst(substr($trial_unit, 0, -1));
+  else {
+    $trial_unit = ucfirst(substr($trial_unit, 0, -1));
+  }
 
   if ($fee->initial_charge) {
-    $start_date = date(DATE_ATOM, strtotime('+ '. $fee->initial_charge));
+    $start_date = date(DATE_ATOM, strtotime('+ ' . $fee->initial_charge));
   }
   else {
     //the same as date(DATE_ATOM,$fee->next_charge)
-    $start_date = date(DATE_ATOM, strtotime('+ '. $fee->regular_interval));
+    $start_date = date(DATE_ATOM, strtotime('+ ' . $fee->regular_interval));
   }
 
   $cc_type = '';
@@ -732,7 +756,7 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
     // Set the version required for recurring payments.
     'VERSION' => UC_PAYPAL_RECURRING_API,
     'METHOD' => 'CreateRecurringPaymentsProfile',
-    'DESC' => 'Order '. $order->order_id .' at '. check_plain(variable_get('uc_store_name', 'Ubercart')),
+    'DESC' => 'Order ' . $order->order_id . ' at ' . check_plain(variable_get('uc_store_name', 'Ubercart')),
     'PROFILESTARTDATE' => $start_date,
     'PROFILEREFERENCE' => $order->order_id,
     'CREDITCARDTYPE' => $cc_type,
@@ -825,17 +849,20 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
     case 'SuccessWithWarning':
       watchdog('uc_payment', '<b>@type succeeded with a warning.</b>!paypal_message',
         array(
-          '!paypal_message' => _uc_paypal_build_error_messages($nvp_response),
-          '@type' => $types[$data['txn_type']],
-        ),
+        '!paypal_message' => _uc_paypal_build_error_messages($nvp_response),
+        '@type' => $types[$data['txn_type']],
+      ),
         WATCHDOG_WARNING,
-        l(t('view order'), 'admin/store/orders/'. $fee->order_id)
+        l(t('view order'), 'admin/store/orders/' . $fee->order_id)
       );
-    // Fall through.
+      // Fall through.
     case 'Success':
       $message = t('<b>PayPal Recurring Profile Setup</b><br /><b>Recurring Profile Amount: </b>@amount @currency<br /><b>Recurring Profile ID: </b>@profile_id',
-        array('@amount' => uc_price($nvp_request['AMT'], $context, array('sign' => FALSE)),
-              '@currency' => $nvp_response['CURRENCYCODE'], '@profile_id' => $nvp_response['PROFILEID']));
+        array(
+        '@amount' => $nvp_request['AMT'],
+        '@currency' => $nvp_response['CURRENCYCODE'],
+        '@profile_id' => $nvp_response['PROFILEID'],
+      ));
 
       $result = array(
         'success' => TRUE,
@@ -854,13 +881,25 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
       uc_recurring_hosted_subscription_save($fee->rfid, $nvp_response['PROFILEID']);
 
       // Log the IPN to the database.
-      db_query("INSERT INTO {uc_payment_paypal_ipn} (order_id, txn_id, txn_type, mc_gross, status, receiver_email, payer_email, received) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', %d)",
-      $order->order_id, $nvp_response['TRANSACTIONID'], 'web_accept', $amount, 'Completed', '', $order->primary_email, time());
+      // TODO Please review the conversion of this statement to the D7 database API syntax.
+      /* db_query("INSERT INTO {uc_payment_paypal_ipn} (order_id, txn_id, txn_type, mc_gross, status, receiver_email, payer_email, received) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', %d)", $order->order_id, $nvp_response['TRANSACTIONID'], 'web_accept', $amount, 'Completed', '', $order->primary_email, REQUEST_TIME) */
+      $id = db_insert('uc_payment_paypal_ipn')
+  ->fields(array(
+        'order_id' => $order->order_id,
+        'txn_id' => $nvp_response['TRANSACTIONID'],
+        'txn_type' => 'web_accept',
+        'mc_gross' => $amount,
+        'status' => 'Completed',
+        'receiver_email' => '',
+        'payer_email' => $order->primary_email,
+        'received' => REQUEST_TIME,
+      ))
+  ->execute();
 
       break;
 
     case 'FailureWithWarning':
-    // Fall through.
+      // Fall through.
     case 'Failure':
       $message = t('<b>Recurring Payment Setup Failed.</b>') . _uc_paypal_build_error_messages($nvp_response);
 
@@ -1056,7 +1095,7 @@ function uc_recurring_hosted_paypal_wpp_update_form($form_state, $rfid) {
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Update Account'),
-    '#suffix' => l(t('Cancel'), 'user/'. $order->uid .'/recurring-fees'),
+    '#suffix' => l(t('Cancel'), 'user/' . $order->uid . '/recurring-fees'),
   );
 
   return $form;
@@ -1067,7 +1106,7 @@ function uc_recurring_hosted_paypal_wpp_update_form($form_state, $rfid) {
  * @param unknown_type $form_state
  * @return unknown_type
  */
-function uc_recurring_hosted_paypal_wpp_update_form_submit($form, $form_state){
+function uc_recurring_hosted_paypal_wpp_update_form_submit($form, $form_state) {
   $fee = uc_recurring_fee_user_load($form_state['values']['rfid']);
   $order = uc_order_load($fee->order_id);
   $order->payment_details = $form_state['values']['cc_data'];
@@ -1159,7 +1198,7 @@ function uc_recurring_hosted_paypal_wpp_update_form_submit($form, $form_state){
 
   if ($message = uc_recurring_hosted_paypal_wpp_update($order, $fee, $nvp_request)) {
     drupal_set_message(t('Your account has been updated successfully.'));
-    $form_state['redirect'] = 'user/'. $form_state['values']['uid'];
+    $form_state['redirect'] = 'user/' . $form_state['values']['uid'];
   }
   else {
     drupal_set_message(t('Your account failed to update due to an error with your card information.  Please try again or contact us for assistance.'), 'error');
@@ -1203,7 +1242,7 @@ function uc_recurring_hosted_paypal_wpp_update($order, $fee, $updates = array())
   }
 
   $message = t('<b>PayPal Recurring Profile Updated</b><br /><b>Field(s) Updated: </b>@fields<br /><b>Recurring Profile ID: </b>@profile_id',
-    array('@fields'=> implode(',', array_keys($updates)), '@profile_id' => $profile->subscription_id));
+    array('@fields' => implode(',', array_keys($updates)), '@profile_id' => $profile->subscription_id));
 
   uc_order_comment_save($order->order_id, $user->uid, $message, 'admin');
   return TRUE;
@@ -1216,17 +1255,18 @@ function uc_recurring_hosted_paypal_wpp_update($order, $fee, $updates = array())
  * @param unknown_type $ipn
  * @return unknown_type
  */
-function uc_recurring_hosted_paypal_wpp_suspension_log($fee,$ipn){
+function uc_recurring_hosted_paypal_wpp_suspension_log($fee, $ipn) {
   $profile = uc_recurring_hosted_paypal_wpp_get_profile($fee->rfid);
 
-  if($profile['LASTPAYMENTDATE']){
-    $date = date('m/d/Y H:i:s',strtotime($profile['LASTPAYMENTDATE']));
-  }else{
+  if ($profile['LASTPAYMENTDATE']) {
+    $date = date('m/d/Y H:i:s', strtotime($profile['LASTPAYMENTDATE']));
+  }
+  else {
     $date = 'N/A';
   }
 
   $message = t('<b>PayPal Recurring Profile Suspended</b><br /><b>Last Successful Payment Date: </b>@date<br /><b>Recurring Profile ID: </b>@profile_id',
-    array('@date'=> $date, '@profile_id' => $ipn->recurring_payment_id));
+    array('@date' => $date, '@profile_id' => $ipn->recurring_payment_id));
 
   uc_order_comment_save($fee->order_id, 0, $message, 'admin');
 
@@ -1234,7 +1274,11 @@ function uc_recurring_hosted_paypal_wpp_suspension_log($fee,$ipn){
   uc_recurring_fee_user_save($fee);
 }
 
-function uc_recurring_hosted_paypal_wpp_profile_creation_form($form_state, $rfid){
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
+function uc_recurring_hosted_paypal_wpp_profile_creation_form($form_state, $rfid) {
   // Load fee.
   $fee = uc_recurring_fee_user_load($rfid);
 
@@ -1288,21 +1332,21 @@ function uc_recurring_hosted_paypal_wpp_profile_creation_form($form_state, $rfid
     $form['billing_data']['billing_country'] = uc_country_select(uc_get_field_name('country'), $order->billing_country, NULL, 'name', uc_address_field_required('country'));
   }
 
-      if (uc_address_field_enabled('zone')) {
-        if (isset($_POST['panes']['billing']['billing_country'])) {
-          $country_id = intval($_POST['panes']['billing']['billing_country']);
-        }
-        else {
-          $country_id = $order->billing_country;
-        }
-        $form['billing_data']['billing_zone'] = uc_zone_select(uc_get_field_name('zone'), $order->billing_zone, NULL, $country_id, 'name', uc_address_field_required('zone'));
-        if (isset($_POST['panes']) && count($contents['billing_zone']['#options']) == 1) {
-          $form['billing_data']['billing_zone']['#required'] = FALSE;
-        }
-      }
-      if (uc_address_field_enabled('postal_code')) {
-        $form['billing_data']['billing_postal_code'] = uc_textfield(uc_get_field_name('postal_code'), $order->billing_postal_code, uc_address_field_required('postal_code'), NULL, 10, 10);
-      }
+  if (uc_address_field_enabled('zone')) {
+    if (isset($_POST['panes']['billing']['billing_country'])) {
+      $country_id = intval($_POST['panes']['billing']['billing_country']);
+    }
+    else {
+      $country_id = $order->billing_country;
+    }
+    $form['billing_data']['billing_zone'] = uc_zone_select(uc_get_field_name('zone'), $order->billing_zone, NULL, $country_id, 'name', uc_address_field_required('zone'));
+    if (isset($_POST['panes']) && count($contents['billing_zone']['#options']) == 1) {
+      $form['billing_data']['billing_zone']['#required'] = FALSE;
+    }
+  }
+  if (uc_address_field_enabled('postal_code')) {
+    $form['billing_data']['billing_postal_code'] = uc_textfield(uc_get_field_name('postal_code'), $order->billing_postal_code, uc_address_field_required('postal_code'), NULL, 10, 10);
+  }
 
   $form['submit'] = array(
     '#type' => 'submit',
@@ -1312,7 +1356,11 @@ function uc_recurring_hosted_paypal_wpp_profile_creation_form($form_state, $rfid
   return $form;
 }
 
-function uc_recurring_hosted_paypal_wpp_profile_creation_form_submit($form, &$form_state){
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
+function uc_recurring_hosted_paypal_wpp_profile_creation_form_submit($form, &$form_state) {
   $fee = uc_recurring_fee_user_load($form_state['values']['rfid']);
   $order = uc_order_load($fee->order_id);
   $order->payment_details = $form_state['values']['cc_data'];
@@ -1327,17 +1375,24 @@ function uc_recurring_hosted_paypal_wpp_profile_creation_form_submit($form, &$fo
   $order->billing_zone = $form_state['values']['billing_zone'];
   $order->billing_postal_code = $form_state['values']['billing_postal_code'];
 
-  if($fee->next_charge < time()){
+  if ($fee->next_charge < REQUEST_TIME) {
     $periods_past_due = uc_recurring_vodaplex_determine_past_due($fee);
   }
 
-  $result = uc_recurring_hosted_paypal_wpp_process($order,$fee);
+  $result = uc_recurring_hosted_paypal_wpp_process($order, $fee);
 
-  if($result){
-    db_query("UPDATE {uc_recurring_users} SET billing_assigned = 1 WHERE rfid = %d",$fee->rfid);
+  if ($result) {
+    // TODO Please review the conversion of this statement to the D7 database API syntax.
+    /* db_query("UPDATE {uc_recurring_users} SET billing_assigned = 1 WHERE rfid = %d", $fee->rfid) */
+    db_update('uc_recurring_users')
+  ->fields(array(
+      'billing_assigned' => 1,
+    ))
+  ->condition('rfid', $fee->rfid)
+  ->execute();
 
     //check if periods to charge
-    if($periods_past_due > 0){
+    if ($periods_past_due > 0) {
       $amount = $fee->fee_amount * $periods_past_due;
       $data['txn_type'] = UC_CREDIT_AUTH_CAPTURE;
       uc_recurring_vodaplex_paypal_wpp_charge($order, $amount, $data);
@@ -1354,8 +1409,9 @@ function uc_recurring_hosted_paypal_wpp_profile_creation_form_submit($form, &$fo
     _save_cc_data_to_order($cc_data, $order->order_id);
 
     uc_order_save($order);
-    $form_state['redirect'] = 'user/'.$order->uid.'/recurring/create/complete';
-  }else{
-    drupal_set_message(t('Recurring fee was not processed successfully. Please try again or contact customer service.'),'error');
+    $form_state['redirect'] = 'user/' . $order->uid . '/recurring/create/complete';
+  }
+  else {
+    drupal_set_message(t('Recurring fee was not processed successfully. Please try again or contact customer service.'), 'error');
   }
 }

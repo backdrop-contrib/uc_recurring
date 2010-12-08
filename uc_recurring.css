@@ -12,6 +12,10 @@ div.fieldset.interval-fieldset {
   float: left;
 }
 
+.form-item-reset-next-charge {
+  clear: both;
+}
+
 #edit-reset-next-charge-wrapper {
   clear: both;
 }

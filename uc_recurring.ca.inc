@@ -12,7 +12,7 @@
  ******************************************************************************/
 
 /**
- * Implementation of hook_ca_entity().
+ * Implements hook_ca_entity().
  *
  * An entity is defined in order to get the recurring fee down to token in the
  * email.
@@ -30,7 +30,7 @@ function uc_recurring_ca_entity() {
 }
 
 /**
- * Implementation of hook_ca_predicate().
+ * Implements hook_ca_predicate().
  */
 function uc_recurring_ca_predicate() {
   $predicates = array();
@@ -79,7 +79,7 @@ function uc_recurring_ca_predicate() {
         '#settings' => array(
           'order_status' => 'completed',
         ),
-      )
+      ),
     ),
   );
 
@@ -118,7 +118,7 @@ function uc_recurring_ca_predicate() {
           'message' => uc_get_message('uc_recurring_renewal_completed_message'),
           'format' => 1,
         ),
-      )
+      ),
     ),
   );
   $predicates['uc_recurring_renewal_email_failed'] = array(
@@ -156,7 +156,7 @@ function uc_recurring_ca_predicate() {
           'message' => uc_get_message('uc_recurring_renewal_failed_message'),
           'format' => 1,
         ),
-      )
+      ),
     ),
   );
   $predicates['uc_recurring_renewal_email_expired'] = array(
@@ -203,7 +203,7 @@ function uc_recurring_ca_predicate() {
           'message' => uc_get_message('uc_recurring_renewal_expired_message'),
           'format' => 1,
         ),
-      )
+      ),
     ),
   );
 
@@ -211,7 +211,7 @@ function uc_recurring_ca_predicate() {
 }
 
 /**
- * Implementation of hook_ca_condition().
+ * Implements hook_ca_condition().
  */
 function uc_recurring_ca_condition() {
   $conditions['uc_recurring_renewal_status_condition'] = array(
@@ -220,7 +220,10 @@ function uc_recurring_ca_condition() {
     '#category' => t('Order: Recurring'),
     '#callback' => 'uc_recurring_condition_order_contains_renewals',
     '#arguments' => array(
-      'order' => array('#entity' => 'uc_order', '#title' => t('Order')),
+      'order' => array(
+        '#entity' => 'uc_order',
+        '#title' => t('Order'),
+      ),
     ),
   );
   $conditions['uc_recurring_renewal_expired_condition'] = array(
@@ -229,7 +232,10 @@ function uc_recurring_ca_condition() {
     '#category' => t('Order: Recurring'),
     '#callback' => 'uc_recurring_condition_order_has_expired',
     '#arguments' => array(
-      'recurring_fee' => array('#entity' => 'uc_recurring_fee', '#title' => t('Recurring Fee')),
+      'recurring_fee' => array(
+        '#entity' => 'uc_recurring_fee',
+        '#title' => t('Recurring Fee'),
+      ),
     ),
   );
 
@@ -237,7 +243,7 @@ function uc_recurring_ca_condition() {
 }
 
 /**
- * Implementation of hook_ca_action().
+ * Implements hook_ca_action().
  */
 function uc_recurring_ca_action() {
   // Send an email to an order with a role expiration
@@ -261,7 +267,7 @@ function uc_recurring_ca_action() {
 }
 
 /**
- * Implementation of hook_ca_trigger().
+ * Implements hook_ca_trigger().
  */
 function uc_recurring_ca_trigger() {
   $order = array(
@@ -314,7 +320,7 @@ function uc_recurring_ca_trigger() {
 
 /**
  * Check if the order contains a renewal product.
- * 
+ *
  * @param $order
  *   The order object.
  * @param $recurring_fee

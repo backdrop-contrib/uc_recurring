@@ -2,7 +2,7 @@
 // $Id$
 
 /**
- * Implementation of hook_ca_entity().
+ * Implements hook_ca_entity().
  */
 function uc_recurring_subscription_ca_entity() {
   $entities = array();
@@ -16,7 +16,7 @@ function uc_recurring_subscription_ca_entity() {
 }
 
 /**
- * Implementation of hook_ca_condition().
+ * Implements hook_ca_condition().
  */
 function uc_recurring_subscription_ca_condition() {
   $condition = array();
@@ -24,7 +24,7 @@ function uc_recurring_subscription_ca_condition() {
 }
 
 /**
- * Implementation of hook_ca_action().
+ * Implements hook_ca_action().
  */
 function uc_recurring_subscription_ca_action() {
   // actions to grant/revoke role on user account.
@@ -80,7 +80,7 @@ function uc_recurring_subscription_ca_action() {
 }
 
 /**
- * Implementation of hook_ca_trigger().
+ * Implements hook_ca_trigger().
  */
 function uc_recurring_subscription_ca_trigger() {
   // use the existing uc_recurring triggers
@@ -89,7 +89,7 @@ function uc_recurring_subscription_ca_trigger() {
 }
 
 /**
- * Implementation of hook_ca_predicate().
+ * Implements hook_ca_predicate().
  */
 function uc_recurring_subscription_ca_predicate() {
   $predicates = array();
@@ -128,7 +128,7 @@ function uc_recurring_subscription_ca_predicate() {
           'role_option' => 'subscribe_grant',
           'role' => array(),
         ),
-      )
+      ),
     ),
   );
 
@@ -155,7 +155,7 @@ function uc_recurring_subscription_ca_predicate() {
           'role_option' => 'expire_grant',
           'role' => array(),
         ),
-      )
+      ),
     ),
   );
 
@@ -182,7 +182,7 @@ function uc_recurring_subscription_ca_predicate() {
           'role_option' => 'expire_revoke',
           'role' => array(),
         ),
-      )
+      ),
     ),
   );
 
@@ -194,6 +194,12 @@ function uc_recurring_subscription_ca_predicate() {
  * Grant a role.
  */
 function uc_recurring_subscription_action_grant_role($order, $settings) {
+  // TODO Convert "user_load" to "user_load_multiple" if "$order->uid" is other than a uid.
+  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+  // Example: array_shift(user_load_multiple(array(), $order->uid))
+  // TODO Convert "user_load" to "user_load_multiple" if "$order->uid" is other than a uid.
+  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+  // Example: array_shift(user_load_multiple(array(), $order->uid))
   $account = user_load($order->uid);
 
   $roles = user_roles(TRUE);
@@ -216,7 +222,7 @@ function uc_recurring_subscription_action_grant_role($order, $settings) {
  * Grant role CA form.
  */
 function uc_recurring_subscription_action_grant_role_form($form_state, $settings = array()) {
-  drupal_add_css(drupal_get_path('module', 'uc_recurring_subscription') .'/uc_recurring_subscription.css');
+  drupal_add_css(drupal_get_path('module', 'uc_recurring_subscription') . '/uc_recurring_subscription.css');
   $form['role_option'] = array(
     '#type' => 'radios',
     '#title' => t('Where are the role(s) defined?'),
@@ -253,6 +259,12 @@ function uc_recurring_subscription_action_grant_role_form($form_state, $settings
  * Revoke user role(s).
  */
 function uc_recurring_subscription_action_revoke_role($order, $settings) {
+  // TODO Convert "user_load" to "user_load_multiple" if "$order->uid" is other than a uid.
+  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+  // Example: array_shift(user_load_multiple(array(), $order->uid))
+  // TODO Convert "user_load" to "user_load_multiple" if "$order->uid" is other than a uid.
+  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+  // Example: array_shift(user_load_multiple(array(), $order->uid))
   $account = user_load($order->uid);
 
   $roles = user_roles(TRUE);
@@ -276,6 +288,12 @@ function uc_recurring_subscription_action_revoke_role($order, $settings) {
   }
   user_save($account, array('roles' => $account->roles));
 
+  // TODO Convert "user_load" to "user_load_multiple" if "$order->uid" is other than a uid.
+  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+  // Example: array_shift(user_load_multiple(array(), $order->uid))
+  // TODO Convert "user_load" to "user_load_multiple" if "$order->uid" is other than a uid.
+  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+  // Example: array_shift(user_load_multiple(array(), $order->uid))
   $account = user_load($order->uid);
 }
 

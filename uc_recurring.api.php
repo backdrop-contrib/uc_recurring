@@ -98,8 +98,7 @@ function hook_recurring_info_alter(&$info) {
  * @param $fee
  *   The recurring Fee object.
  */
-function hook_recurring_renewal_pending(&$order, &$fee) {
-}
+function hook_recurring_renewal_pending(&$order, &$fee) { }
 
 /**
  * Act on recurring renewal completed event.
@@ -109,8 +108,7 @@ function hook_recurring_renewal_pending(&$order, &$fee) {
  * @param $fee
  *   The recurring Fee object.
  */
-function hook_recurring_renewal_completed(&$order, &$fee) {
-}
+function hook_recurring_renewal_completed(&$order, &$fee) { }
 
 /**
  * Act on recurring renewal failed event.
@@ -120,8 +118,7 @@ function hook_recurring_renewal_completed(&$order, &$fee) {
  * @param $fee
  *   The recurring fee object.
  */
-function hook_recurring_renewal_failed(&$order, &$fee) {
-}
+function hook_recurring_renewal_failed(&$order, &$fee) { }
 
 /**
  * Act on recurring product deleted.
@@ -129,8 +126,7 @@ function hook_recurring_renewal_failed(&$order, &$fee) {
  * @param $pfid
  *   The product fee ID.
  */
-function hook_recurring_product_deleted($pfid) {
-}
+function hook_recurring_product_deleted($pfid) { }
 
 /**
  * Act on recurring user deleted.
@@ -138,8 +134,7 @@ function hook_recurring_product_deleted($pfid) {
  * @param $rfid
  *   the recurring fee ID.
  */
-function hook_recurring_user_deleted($rfid) {
-}
+function hook_recurring_user_deleted($rfid) { }
 
 /**
  * Set the access permission on user operations.

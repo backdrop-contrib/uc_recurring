@@ -2,4 +2,7 @@ name = Recurring Product Fees
 description = Add recurring fees for products.
 dependencies[] = uc_recurring
 package = Ubercart - recurring
-core = 6.x
+core = 7.x
+
+files[] = uc_recurring_product.install
+files[] = uc_recurring_product.module

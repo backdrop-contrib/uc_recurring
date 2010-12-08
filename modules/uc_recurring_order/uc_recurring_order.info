@@ -2,4 +2,7 @@ name = Recurring Order
 description = Recurring Fees for duplicating entire orders.
 dependencies[] = uc_recurring
 package = Ubercart - recurring
-core = 6.x
+core = 7.x
+
+files[] = uc_recurring_order.install
+files[] = uc_recurring_order.module

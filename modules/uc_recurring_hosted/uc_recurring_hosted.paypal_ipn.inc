@@ -12,14 +12,14 @@
 function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
   // Assign posted variables to local variables
   $ipn = (object) $_POST;
-  $ipn->received = time();
+  $ipn->received = REQUEST_TIME;
 
   if (!$order_id) {
     $order_id = $ipn->rp_invoice_id;
   }
 
   watchdog('uc_recurring_hosted', 'Receiving recurring IPN at URL for order @order_id. !debug',
-    array('@order_id' => $order_id, '!debug' => variable_get('uc_paypal_wps_debug_ipn', FALSE) ? '<pre>'. check_plain(print_r($_POST, TRUE)) .'</pre>' : ''));
+    array('@order_id' => $order_id, '!debug' => variable_get('uc_paypal_wps_debug_ipn', FALSE) ? '<pre>' . check_plain(print_r($_POST, TRUE)) . '</pre>' : ''));
 
   $order = _uc_recurring_hosted_paypal_ipn_order($ipn);
 
@@ -32,7 +32,7 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
 
   // Log the IPN against the actual order if debug enabled.
   if (variable_get('uc_paypal_wps_debug_ipn', FALSE)) {
-    uc_order_log_changes($order->order_id, array('<pre>'. print_r($ipn, TRUE) .'</pre>'));
+    uc_order_log_changes($order->order_id, array('<pre>' . print_r($ipn, TRUE) . '</pre>'));
   }
 
   if (_uc_recurring_hosted_paypal_ipn_validate($ipn)) {
@@ -66,7 +66,7 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
         $retry_at = strtotime(check_plain($_POST['retry_at']));
         $fees = uc_recurring_get_fees($order);
         foreach ($fees as $fee) {
-          $extend_seconds = $retry_at - time();
+          $extend_seconds = $retry_at - REQUEST_TIME;
           uc_recurring_extend_fee($fee, $extend_seconds);
         }
         return;
@@ -75,7 +75,7 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
         $next_payment_date = strtotime(check_plain($_POST['NEXTBILLINGDATE']));
         $fees = uc_recurring_get_fees($order);
         foreach ($fees as $fee) {
-          $extend_seconds = $next_payment_date - time();
+          $extend_seconds = $next_payment_date - REQUEST_TIME;
           uc_recurring_extend_fee($fee, $extend_seconds);
         }
         return;
@@ -102,14 +102,14 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
 
         $fees = uc_recurring_get_fees($order);
         foreach ($fees as $fee) {
-          uc_recurring_hosted_paypal_wpp_suspension_log($fee,$ipn);
+          uc_recurring_hosted_paypal_wpp_suspension_log($fee, $ipn);
         }
         break;
       case 'recurring_payment_profile_cancel':
         $fees = uc_recurring_get_fees($order);
         if ($fee = $fees[0]) {
           $ipn->txn_id = $ipn->recurring_payment_id;
-          if($fee->remaining_intervals == -1){
+          if ($fee->remaining_intervals == -1) {
             uc_recurring_fee_cancel($fee->rfid, $fee);
           }
           uc_order_comment_save($fee->order_id, NULL, t('PayPal confirmed cancellation of billing agreement.'));
@@ -132,7 +132,10 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
  */
 function _uc_recurring_hosted_paypal_ipn_payment($ipn) {
   global $user;
-  $context = array('revision' => 'formatted-original', 'type' => 'amount');
+  $context = array(
+    'revision' => 'formatted-original',
+    'type' => 'amount',
+  );
   $options = array('sign' => FALSE);
 
   switch ($ipn->payment_status) {
@@ -164,7 +167,7 @@ function _uc_recurring_hosted_paypal_ipn_payment($ipn) {
       uc_order_comment_save($ipn->order_id, 0, t('Payment is pending at PayPal: @reason', array('@reason' => _uc_paypal_pending_message(check_plain($ipn->pending_reason)))), 'admin');
       break;
 
-    // You, the merchant, refunded the payment.
+      // You, the merchant, refunded the payment.
     case 'Refunded':
       $comment = t('PayPal transaction ID: @txn_id', array('@txn_id' => $ipn->txn_id));
       uc_payment_enter($ipn->order_id, 'paypal_wps', $ipn->mc_gross, $ipn->uid, NULL, $comment);
@@ -235,7 +238,7 @@ function _uc_recurring_hosted_paypal_ipn_validate($ipn) {
   $req = '';
   foreach ($_POST as $key => $value) {
     $value = urlencode(stripslashes($value));
-    $req .= $key .'='. $value .'&';
+    $req .= $key . '=' . $value . '&';
   }
 
   $req .= 'cmd=_notify-validate';
@@ -246,7 +249,11 @@ function _uc_recurring_hosted_paypal_ipn_validate($ipn) {
   else {
     $host = variable_get('uc_paypal_wps_server', 'https://www.sandbox.paypal.com/cgi-bin/webscr');
   }
-  $response = drupal_http_request($host, array(), 'POST', $req);
+  $response = drupal_http_request($host, array('headers' => array('headers' => array(
+        'headers' => array(),
+        'method' => 'POST',
+        'data' => $req,
+      ))));
 
   // @todo: Change this to property_exists when we have a PHP requirement >= 5.1.
   if (array_key_exists('error', $response)) {
@@ -269,10 +276,19 @@ function _uc_recurring_hosted_paypal_ipn_validate($ipn) {
  * Check if we have already recieved a IPN with the same details.
  */
 function _uc_recurring_hosted_paypal_ipn_is_duplicate($ipn) {
-  if($ipn->txn_id){
-    $duplicate = db_result(db_query("SELECT COUNT(*) FROM {uc_payment_paypal_ipn} WHERE txn_id = '%s' AND txn_type = '%s' AND status <> 'Pending'", $ipn->txn_id, $ipn->txn_type));
+  if ($ipn->txn_id) {
+    $duplicate = db_query("SELECT COUNT(*) FROM {uc_payment_paypal_ipn} WHERE txn_id = :txn_id AND txn_type = :txn_type AND status <> :status", array(':txn_id' => : txn_id, ':txn_type' => : txn_type, ':status' => : status, '' => array(
+        ':txn_id' => : txn_id,
+        ':txn_type' => : txn_type,
+        ':status' => : status,
+        '' => array(
+          ':txn_id' => $ipn->txn_id,
+          ':txn_type' => $ipn->txn_type,
+          ':status' => 'Pending',
+        ),
+      )))->fetchField();
     if ($duplicate > 0) {
-      watchdog('uc_recurring_hosted', 'IPN (Order:@order_id Txn: @txn_id) has been processed before.', array('@order_id'=>$ipn->order_id,'@txn_id' => $ipn->txn_id), WATCHDOG_NOTICE);
+      watchdog('uc_recurring_hosted', 'IPN (Order:@order_id Txn: @txn_id) has been processed before.', array('@order_id' => $ipn->order_id, '@txn_id' => $ipn->txn_id), WATCHDOG_NOTICE);
       return TRUE;
     }
   }

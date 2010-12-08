@@ -7,7 +7,7 @@
  */
 
 /**
- * Implementation of hook_recurring_info().
+ * Implements hook_recurring_info().
  */
 function uc_recurring_test_gateway_recurring_info() {
   $items['test_gateway'] = array(
@@ -20,13 +20,17 @@ function uc_recurring_test_gateway_recurring_info() {
     'saved profile' => TRUE,
     'menu' => array(
       'charge' => UC_RECURRING_MENU_DEFAULT,
-      'edit'   => UC_RECURRING_MENU_DEFAULT,
+      'edit' => UC_RECURRING_MENU_DEFAULT,
       'cancel' => UC_RECURRING_MENU_DEFAULT,
     ), // Use the default user operation defined in uc_recurring.
   );
   return $items;
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function uc_recurring_test_gateway_process($order, &$fee) {
   $data = array(
     'billing' => array(
@@ -63,6 +67,10 @@ function uc_recurring_test_gateway_process($order, &$fee) {
 }
 
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function uc_recurring_test_gateway_renew($order, &$fee) {
   if ($key = uc_credit_encryption_key()) {
     $crypt = new uc_encryption_class;
@@ -83,7 +91,7 @@ function uc_recurring_test_gateway_renew($order, &$fee) {
 
   // Handle the result.
   if ($result['success'] === TRUE) {
-    uc_payment_enter($order->order_id, 'credit', $order->order_total, 0, $result['data'], t('Recurring fee payment.') .'<br />'. $result['comment']);
+    uc_payment_enter($order->order_id, 'credit', $order->order_total, 0, '', t('Recurring fee payment.') . '<br />' . $result['comment']);
   }
 
   return $result['success'];
