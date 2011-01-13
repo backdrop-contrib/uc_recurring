@@ -1139,3 +1139,13 @@ function uc_recurring_set_intervals(&$fee) {
   $fee->attempts = 0;
   $fee->data['extension'] = 0;
 }
+
+/**
+ * Implements hook_views_api().
+ */
+function uc_recurring_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'uc_recurring') . '/views',
+  );
+}
