@@ -121,7 +121,7 @@ function uc_recurring_subscription_enable() {
   $attribute->required = 1;
   $attribute->display = 1;
   $attribute->description = 'The subscription payment options';
-  uc_attribute_save(&$attribute);
+  uc_attribute_save($attribute);
   uc_attribute_subject_save($attribute, 'class', 'uc_recurring_subscription');
   variable_set('uc_recurring_subscription_attribute', $attribute->aid);
 }
