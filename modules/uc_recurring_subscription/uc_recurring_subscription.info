@@ -1,4 +1,3 @@
-; $Id$
 name = Subscription Manager
 description = Provides a Subscription Manager UI for paid membership features. Must read README.txt before installing.
 dependencies[] = uc_recurring

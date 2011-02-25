@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 /**
  * Define the recurring payment method/gateway function callbacks.

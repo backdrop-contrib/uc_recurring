@@ -1,4 +1,3 @@
-; $Id$
 name = Mock Recurring Gateway
 description = DO NOT ENABLE - Implements mock payment method functions to simulate payment processing for simpletests ONLY.
 dependencies[] = uc_payment

@@ -1,4 +1,3 @@
-; $Id$
 name = Recurring Payments API
 description = Manage the integration between ubercart and recurring payment gateways that implement a recurring fee handler. This module does not do anything on its own it required a module that creates the recurring payments on specific events like the recurring products or recurring order modules.
 dependencies[] = uc_cart

@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 function hook_uc_recurring_hosted_subscription_alter(&$object) {
 

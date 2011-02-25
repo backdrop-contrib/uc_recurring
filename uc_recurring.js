@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * Disable and enable fields in the recurring fee feature form.
