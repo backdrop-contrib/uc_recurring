@@ -566,22 +566,22 @@ function uc_recurring_save_extensions($extensions, $fee_id = NULL) {
     // TODO Please review the conversion of this statement to the D7 database API syntax.
     /* db_query("INSERT INTO {uc_recurring_extensions} (rebill_attempt, time_to_extend) VALUES (%d, %d)", $count, $seconds) */
     $id = db_insert('uc_recurring_extensions')
-  ->fields(array(
-      'rebill_attempt' => $count,
-      'time_to_extend' => $seconds,
-    ))
-  ->execute();
+      ->fields(array(
+        'rebill_attempt' => $count,
+        'time_to_extend' => $seconds,
+      ))
+      ->execute();
     $count++;
   }
   // Last extension set extension to 0 to expire.
   // TODO Please review the conversion of this statement to the D7 database API syntax.
   /* db_query("INSERT INTO {uc_recurring_extensions} (rebill_attempt, time_to_extend) VALUES (%d, 0)", $count) */
   $id = db_insert('uc_recurring_extensions')
-  ->fields(array(
-    'rebill_attempt' => $count,
-    'time_to_extend' => 0,
-  ))
-  ->execute();
+    ->fields(array(
+      'rebill_attempt' => $count,
+      'time_to_extend' => 0,
+    ))
+    ->execute();
 }
 
 /**
@@ -591,6 +591,7 @@ function uc_recurring_save_extensions($extensions, $fee_id = NULL) {
  *   Array keyed by the implementing module, and the callback.
  */
 function uc_recurring_get_recurring_info($key = '', $reset = FALSE) {
+
   static $data = array();
 
   if ($reset || ($key && empty($data[$key])) || (!$key && empty($data))) {
@@ -722,7 +723,7 @@ function uc_recurring_fee_user_save($fee) {
  *   The recurring fee object.
  */
 function uc_recurring_fee_user_load($rfid) {
-  $fee = db_query("SELECT * FROM {uc_recurring_users} WHERE rfid = :rfid", array(':rfid' => $rfid))->fetchObject();
+  $fee = db_query("SELECT ru.*, u.name FROM {uc_recurring_users} ru JOIN users u ON u.uid = ru.uid WHERE rfid = :rfid", array(':rfid' => $rfid))->fetchObject();
   if ($fee) {
     $fee->data = unserialize($fee->data);
 
@@ -802,10 +803,12 @@ function uc_recurring_get_fees($order, $reset = FALSE) {
         $products[$value->order_product_id] = $value->order_product_id;
       }
 
-      // TODO Please convert this statement to the D7 database API syntax.
+      $products[] = 1;
+      // TODO Please review the conversion of this statement to the D7 database API syntax.
       $result = db_query("SELECT ru.*, u.name FROM {uc_recurring_users} ru LEFT JOIN {users} u ON u.uid=ru.uid WHERE order_product_id IN (:products)", array(':products' => $products));
-      if (!empty($results)) {
-        foreach ($results as $fee) {
+
+      if (!empty($result)) {
+        foreach ($result as $fee) {
           $fee->data = unserialize($fee->data);
           $fees[$order->order_id][] = $fee;
         }
@@ -847,14 +850,21 @@ function uc_recurring_get_fees_for_expiration() {
  */
 function uc_recurring_get_all_fees($pager = FALSE, $order = '') {
   $fees = array();
-  $sql = "SELECT ru.*, u.name FROM {uc_recurring_users} ru LEFT JOIN {users} u ON u.uid=ru.uid" . $order;
+  //$sql = "SELECT ru.*, u.name FROM {uc_recurring_users} ru LEFT JOIN {users} u ON u.uid=ru.uid" . $order;
+  $query = db_select('uc_recurring_users', 'ru');
   if ($pager) {
-    $result = pager_query($sql, variable_get('uc_order_number_displayed', 30));
+    $query->extend('PagerDefault');
   }
-  else {
-    // TODO Please convert this statement to the D7 database API syntax.
-    $result = db_query($sql);
-  }
+
+  // add the order header
+  $query->extend('TableSort')
+    ->orderByHeader($order)
+    ->fields('ru')
+    ->fields('u', array('name'))
+    ->join('users', 'u', 'u.uid = ru.uid');
+
+  $result = $query->execute();
+
   foreach ($result as $fee) {
     $fees[$fee->rfid] = $fee;
     $fee->data = unserialize($fee->data);
@@ -1033,7 +1043,8 @@ function theme_uc_recurring_admin_table($variables) {
       $recurring_states[$fee->status],
       l($fee->name, 'user/' . $fee->uid),
       format_date($fee->next_charge, 'short'),
-      $fee->fee_amount != '0.00' ? theme('uc_price', $fee->fee_amount) : t('Same as product price'),
+      $fee->fee_amount != '0.00' ? $fee->fee_amount : t('Same as product price'),
+      //$fee->fee_amount != '0.00' ? theme('uc_price', $fee->fee_amount) : t('Same as product price'),
       array(
         'data' => check_plain($fee->regular_interval),
         'nowrap' => 'nowrap',

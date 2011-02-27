@@ -12,7 +12,7 @@ function uc_recurring_admin($filter = NULL, $id = NULL) {
   $item = menu_get_item();
 
   // Add the filter form to the top of the table.
-  $output .= drupal_get_form('uc_recurring_admin_filter_form', $item);
+  $output = drupal_get_form('uc_recurring_admin_filter_form', $item);
 
   // Build an array of fees to include in the admin table.
   $fees = array();
@@ -48,8 +48,7 @@ function uc_recurring_admin($filter = NULL, $id = NULL) {
   // If we're on the overview page listing all fees...
   if (empty($filter)) {
     // Get all recurring fees in the system.
-    $order = tablesort_sql($header);
-    $fees = uc_recurring_get_all_fees(TRUE, $order);
+    $fees = uc_recurring_get_all_fees(TRUE, $header);
     $footer_link = FALSE;
   }
   elseif ($filter == 'order') {
@@ -65,7 +64,7 @@ function uc_recurring_admin($filter = NULL, $id = NULL) {
 
   // If we actually found fees to display...
   if (!empty($fees)) {
-    $output .= theme('uc_recurring_admin_table', array('fees' => array('fees' => $fees)));
+    $output .= theme('uc_recurring_admin_table', array('fees' => $fees));
   }
 
   // Display a link back to the full list if necessary.
@@ -134,7 +133,7 @@ function uc_recurring_admin_charge_form($form, $form_state, $rfid, $fee_handler)
       '#type' => 'hidden',
       '#value' => $rfid,
     );
-    $form['message'] = array (
+    $form['message'] = array(
       '#markup' => '<div>' . t('Are you sure you want to charge the customer !amount at this time?', array('!amount' => theme('uc_price', $fee->fee_amount))) . '</div>',
     );
     $form['submit'] = array(
@@ -320,10 +319,10 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
   if ($form_state['values']['reset_next_charge']) {
     $next_charge = strtotime('+' . $interval);
   }
-  else if (!empty($form_state['values']['next_charge_time'])) {
+  elseif (!empty($form_state['values']['next_charge_time'])) {
     $next_charge = strtotime($form_state['values']['next_charge_time']);
   }
-  else if (!empty($form_state['values']['next_charge_date'])) {
+  elseif (!empty($form_state['values']['next_charge_date'])) {
     extract($form_state['values']['next_charge_date']);
     $hour = date('H', $fee->next_charge);
     $min = date('i', $fee->next_charge);

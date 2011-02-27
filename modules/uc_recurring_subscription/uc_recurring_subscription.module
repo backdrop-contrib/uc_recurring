@@ -141,7 +141,7 @@ function uc_recurring_subscription_attribute_delete() {
 function uc_recurring_subscription_load($nidss) {
   // ERROR: return statement not found in hook_load
   foreach ($nids as $nid => &$nid) {
-    $subscription = db_query("SELECT * FROM {uc_recurring_subscription} WHERE nid = :nid", array(':nid' => : nid, '' => array(':nid' => $nid)))->fetchObject();
+    $subscription = db_query("SELECT * FROM {uc_recurring_subscription} WHERE nid = :nid", array(':nid' => $nid))->fetchObject();
     if (!empty($subscription)) {
       $subscription->access = empty($subscription->access) ? array() : unserialize($subscription->access);
     }
@@ -254,7 +254,7 @@ function _uc_recurring_subscription_attribute_option_by_name($aid, $name) {
   $option = db_query("SELECT * from {uc_attribute_options} WHERE aid = :aid AND name = :name", array(
       ':aid' => $aid,
       ':name' => $name,
-    )))->fetchObject();
+    ))->fetchObject();
   // If it doesn't exist we create it.
   if (empty($option)) {
     $option = new stdClass();

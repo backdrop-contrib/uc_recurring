@@ -97,7 +97,7 @@ function uc_recurring_subscription_uninstall() {
 function uc_recurring_subscription_enable() {
   $pcid = 'uc_recurring_subscription';
 
-  if (db_query("SELECT count(*) FROM {uc_product_classes} WHERE pcid = :pcid", array(':pcid' => : pcid, '' => array(':pcid' => $pcid)))->fetchField() < 1) {
+  if (db_query("SELECT count(*) FROM {uc_product_classes} WHERE pcid = :pcid", array(':pcid' => $pcid))->fetchField() < 1) {
     // TODO Please review the conversion of this statement to the D7 database API syntax.
     /* db_query("INSERT INTO {uc_product_classes} (pcid, name, description) VALUES ('%s', 'Recurring Subscription', 'A recurring subscription product used by the recurring subscription ui module to manage your subscription products')", $pcid) */
     $id = db_insert('uc_product_classes')
