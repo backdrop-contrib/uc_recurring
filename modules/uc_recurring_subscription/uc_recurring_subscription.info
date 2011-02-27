@@ -1,5 +1,5 @@
 name = Subscription Manager
-description = Provides a Subscription Manager UI for paid membership features. Must read README.txt before installing.
+description = Provides a Subscription Manager UI for paid membership features. Depends on Ubercart-6.x-2.5
 dependencies[] = uc_recurring
 dependencies[] = uc_recurring_product
 dependencies[] = uc_attribute
