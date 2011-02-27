@@ -684,8 +684,8 @@ function uc_recurring_subscription_subscriber_list($form, $form_state, $product_
                         LEFT JOIN {uc_order_products} p ON p.order_product_id = u.order_product_id
                         LEFT JOIN {uc_recurring_subscription} s ON s.nid = p.nid
                         LEFT JOIN {node} n ON n.nid = p.nid
-                      WHERE u.remaining_intervals <> :u.remaining_intervals
-                      GROUP BY n.nid", array(':u.remaining_intervals' => : u . remaining_intervals, '' => array(':u.remaining_intervals' => 0)));
+                      WHERE u.status <> :u.status
+                      GROUP BY n.nid", array(':u.remaining_intervals' => UC_RECURRING_FEE_STATUS_EXPIRED));
 
   foreach ($result as $subscribers) {
     if (!isset($subscribers->title)) {
@@ -730,7 +730,8 @@ function uc_recurring_subscription_subscriber_list($form, $form_state, $product_
         'field' => 'ru.next_charge',
       ),
       array('data' => t('Price')),
-      array('data' => t('Operations')),
+      array('data' => t('Status')),
+      array('data' => t('Operations'))
     );
     $sql = "SELECT u.uid, u.name, ru.*, p.nid, p.title as product_title
             FROM {users} u
@@ -738,20 +739,20 @@ function uc_recurring_subscription_subscriber_list($form, $form_state, $product_
               LEFT JOIN {uc_order_products} p ON p.order_product_id = ru.order_product_id
               LEFT JOIN {uc_recurring_subscription} s ON s.nid = p.nid
               LEFT JOIN {node} n ON n.nid = p.nid
-            WHERE ru.remaining_intervals <> 0 AND n.nid = %d";
+            WHERE ru.status <> ". UC_RECURRING_FEE_STATUS_EXPIRED ." AND n.nid = %d";
 
     $sql .= tablesort_sql($header);
     $result = pager_query($sql, 20, 0, NULL, $product->nid);
 
     forech ($result as $account) {
       $user_rows[] = array(
-        'order' => l($account->order_id, 'admin/store/orders/' . $account->order_id),
-        'user' => l($account->name, 'user/' . $account->uid),
-        'start' => format_date($account->created, 'short'),
-        'next' => format_date($account->next_charge, 'short'),
-        'price' => theme('uc_price', $account->fee_amount),
-        //'status' => uc_recurring_state($account->status),
-        'ops' => implode(' | ', uc_recurring_get_fee_ops('user', $account)),
+        'order' => l($account->order_id, 'admin/store/orders/'. $account->order_id),
+        'user' => l($account->name, 'user/'. $account->uid),
+        'start' => format_date($account->created, 'small'),
+        'next' => format_date($account->next_charge, 'small'),
+        'price' => uc_price($account->fee_amount, array()),
+        'status' => uc_recurring_fee_status_label($account->status),
+        'ops' => implode(' | ', uc_recurring_get_fee_ops('user', $account))
       );
     }
 
