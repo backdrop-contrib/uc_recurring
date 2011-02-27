@@ -260,7 +260,7 @@ function uc_recurring_order_order($op, &$arg1, $arg2) {
       ))
   ->condition('order_id', $arg1->order_id)
   ->execute();
-      if (db_affected_rows !== 0) {
+      if (db_affected_rows() !== 0) {
         uc_order_comment_save($arg1->order_id, 0, t('The recurring order amount was updated.'), 'admin');
       }
       break;
