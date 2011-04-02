@@ -559,7 +559,6 @@ function uc_recurring_hosted_paypal_wps_process($order, &$fee) {
   // the recurring payment is setup at the time of product purchase
   if (!empty($_POST['subscr_id'])) {
     $fee->data['subscr_id'] = $_POST['subscr_id'];
-    uc_order_update_status($order->order_id, 'paypal_pending');
     return TRUE;
   }
   return FALSE;
