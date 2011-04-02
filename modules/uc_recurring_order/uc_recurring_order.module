@@ -252,18 +252,20 @@ function uc_recurring_order_order($op, &$arg1, $arg2) {
       }
       break;
     case 'save':
-      // TODO Please review the conversion of this statement to the D7 database API syntax.
-      /* db_query("UPDATE {uc_recurring_users} SET fee_amount = %f WHERE order_id = %d", uc_order_get_total($arg1), $arg1->order_id) */
-      db_update('uc_recurring_users')
-  ->fields(array(
-        'fee_amount' => uc_order_get_total($arg1),
-      ))
-  ->condition('order_id', $arg1->order_id)
-  ->execute();
-      if (db_affected_rows() !== 0) {
-        uc_order_comment_save($arg1->order_id, 0, t('The recurring order amount was updated.'), 'admin');
-      }
-      break;
+      if (isset($arg1->data['recurring_option'])) { // Only update when this is a recurring order
+        // TODO Please review the conversion of this statement to the D7 database API syntax.
+        /* db_query("UPDATE {uc_recurring_users} SET fee_amount = %f WHERE order_id = %d", uc_order_get_total($arg1), $arg1->order_id) */
+        db_update('uc_recurring_users')
+          ->fields(array(
+            'fee_amount' => uc_order_get_total($arg1),
+          ))
+          ->condition('order_id', $arg1->order_id)
+          ->execute();
+        if (db_affected_rows() !== 0) {
+          uc_order_comment_save($arg1->order_id, 0, t('The recurring order amount was updated.'), 'admin');
+        }
+        break;
+    }
   }
 }
 
