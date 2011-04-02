@@ -137,6 +137,7 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
     '#description' => t('Specify how many times the recurring fee will be charged.'),
   );
 
+  $attributes = array();
   if (isset($product->number_intervals) && $product->number_intervals < 0) {
     $attributes['checked'] = 'checked';
   }
