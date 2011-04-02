@@ -1,5 +1,5 @@
 name = Recurring - Hosted Gateways
-description = Recurring Fees handlers for hosted gateways - Authorize.net ARB and Paypal WPS
+description = Recurring Fees handlers for hosted gateways - Authorize.net ARB, Paypal WPP and Paypal WPS
 dependencies[] = uc_recurring
 package = Ubercart - recurring
 core = 7.x
