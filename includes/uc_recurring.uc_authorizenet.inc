@@ -108,8 +108,32 @@ function uc_recurring_authorizenet_cim_update_form($form_state, $rfid) {
     '#theme' => 'uc_payment_method_credit_form',
     '#tree' => TRUE,
   );
-  $form['cc_data'] += uc_payment_method_credit_form(array(), $order);
+  $form['cc_data'] = array_merge($form['cc_data'], uc_payment_method_credit_form(array(), $order));
   unset($form['cc_data']['cc_policy']);
+
+  // Make credit card info form items required
+  $form['cc_data']['cc_owner']['#required'] = TRUE;
+  $form['cc_data']['cc_number']['#required'] = TRUE;
+  $form['cc_data']['cc_exp_month']['#required'] = TRUE;
+  $form['cc_data']['cc_exp_year']['#required'] = TRUE;
+  $form['cc_data']['cc_cvv']['#required'] = TRUE;
+
+  // Add billing address form
+  if ($billing_items = uc_order_pane_bill_to('edit-form', $order)) {
+    $form = array_merge($form, $billing_items);
+    $form['bill_to']['#title'] = t('Billing address');
+    $form['bill_to']['#description'] = t('Credit card information must be provided to update billing address.');
+    $form['bill_to']['#collapsible'] = FALSE;
+    $form['bill_to']['#theme'] = 'uc_recurring_authorizenet_cim_billto_form';
+    
+    // Make billing info form items required
+    $form['bill_to']['billing_first_name']['#required'] = TRUE;
+    $form['bill_to']['billing_last_name']['#required'] = TRUE;
+    $form['bill_to']['billing_street1']['#required'] = TRUE;
+    $form['bill_to']['billing_city']['#required'] = TRUE;
+    $form['bill_to']['billing_country']['#required'] = TRUE;
+    $form['bill_to']['billing_postal_code']['#required'] = TRUE;
+  }
 
   $form['submit'] = array(
     '#type' => 'submit',
@@ -121,20 +145,124 @@ function uc_recurring_authorizenet_cim_update_form($form_state, $rfid) {
 }
 
 /**
+ * Implements update form validation for the authorizenet CIM gateway.
+ */
+function uc_recurring_authorizenet_cim_update_form_validate(&$form, &$form_state) {
+  $has_errors = FALSE;
+  $values = $form_state['values'];
+  
+  // Make sure an owner value was entered.
+  if (variable_get('uc_credit_owner_enabled', FALSE) && empty($values['cc_data']['cc_owner'])) {
+    form_set_error('cc_data][cc_owner', t('Enter the owner name as it appears on the card.'));
+    $has_errors = TRUE;
+  }
+  
+  // Validate the CC number if that's turned on/check for non-digits.
+  if (variable_get('uc_credit_validate_numbers', TRUE)) {
+    // Remove the non-numeric characters
+    $cc_number = preg_replace('/[^0-9]/', '', $values['cc_data']['cc_number']);
+    form_set_value($form['cc_data']['cc_number'], $cc_number, $form_state);
+    if (!_valid_card_number($cc_number) || !ctype_digit($cc_number)) {
+      form_set_error('cc_data][cc_number', t('You have entered an invalid credit card number.'));
+      $has_errors = TRUE;
+    }
+  }
+  
+  // Validate the start date (if entered).
+  if (variable_get('uc_credit_start_enabled', FALSE) && !_valid_card_start($values['cc_data']['cc_start_month'], $values['cc_data']['cc_start_year'])) {
+    form_set_error('cc_data][cc_start_month', t('The start date you entered is invalid.'));
+    form_set_error('cc_data][cc_start_year', t('The start date you entered is invalid.'));
+    $has_errors = TRUE;
+  }
+  
+  // Validate the card expiration date.
+  if (!_valid_card_expiration($values['cc_data']['cc_exp_month'], $values['cc_data']['cc_exp_year'])) {
+    form_set_error('cc_data][cc_exp_month', t('The credit card you entered has expired.'));
+    form_set_error('cc_data][cc_exp_year', t('The credit card you entered has expired.'));
+    $has_errors = TRUE;
+  }
+  
+  // Validate the issue number (if entered).  With issue numbers, '01' is
+  // different from '1', but is_numeric() is still appropriate.
+  if (variable_get('uc_credit_issue_enabled', FALSE) && !_valid_card_issue($values['cc_data']['cc_issue'])) {
+    form_set_error('cc_data][cc_issue', t('The issue number you entered is invalid.'));
+    $has_errors = TRUE;
+  }
+
+  // Validate the CVV number if enabled.
+  if (variable_get('uc_credit_cvv_enabled', TRUE) && !_valid_cvv($values['cc_data']['cc_cvv'])) {
+    form_set_error('cc_data][cc_cvv', t('You have entered an invalid CVV number.'));
+    $has_errors = TRUE;
+  }
+
+  // Validate the bank name if enabled.
+  if (variable_get('uc_credit_bank_enabled', FALSE) && empty($values['cc_data']['cc_bank'])) {
+    form_set_error('cc_data][cc_bank', t('You must enter the issuing bank for that card.'));
+    $has_errors = TRUE;
+  }
+
+  //Form requires rebuilding form so codes and expiration blocks will display correctly
+  if ($has_errors) {
+    // remove duplicate error messages when two fields share a message
+    $_SESSION['messages']['error'] = array_unique($_SESSION['messages']['error']);
+    $form_state["rebuild"] = TRUE;
+  }
+}
+
+/**
  * Implements update form submit for the authorizenet CIM gateway.
  */
 function uc_recurring_authorizenet_cim_update_form_submit(&$form, &$form_state) {
   $fee = uc_recurring_fee_user_load($form_state['values']['rfid']);
   $order = uc_order_load($fee->order_id);
+  $last4old=substr($order->payment_details['cc_number'], -4);
   $order->payment_details = $form_state['values']['cc_data'];
+  $log = array();
+
+  // Process billing address form changes
+  if (($bill_changes = uc_order_pane_bill_to('edit-process', $form_state['values'])) != NULL) {
+    foreach ($bill_changes as $key => $value) {
+      if ($order->$key != $value) {
+        if (!is_array($value)) {
+          $log[$key] = array('old' => $order->$key, 'new' => $value);
+        }
+        $order->$key = $value;
+      }
+    }
+  }
+
   $profile_id = end(array_keys($order->data['cc_txns']['references']));
   if ($message = _uc_recurring_uc_authorizenet_cim_update_paymentprofile($order, $profile_id)) {
-    drupal_set_message('Account update failed.', 'error');
+    drupal_set_message(t('Account update failed: @error', array('@error' => $message)), 'error');
+    $form_state['redirect'] = FALSE;
   }
   else {
-    drupal_set_message('Account updated.');
-    $form_state['redirect'] = 'user/' . $form_state['values']['uid'];
+    drupal_set_message(t('Account updated'));
+    uc_order_save($order);
+    $last4new=substr($order->payment_details['cc_number'], -4);
+    if ($last4new!=$last4old) {
+      $log[t('Credit card')] = array('old' => $last4old, 'new' => $last4new);
+    }
+    if ($log) {
+      uc_order_log_changes($order->order_id, $log);
+    }
+    $form_state['redirect'] = 'user/'. $form_state['values']['uid'];
   }
+}
+
+/**
+ * Theme billing address form items
+ */
+function theme_uc_recurring_authorizenet_cim_billto_form($form) {
+  $output = '<table class="order-edit-table">';
+  foreach (element_children($form) as $field) {
+    $title = $form[$field]['#title'];
+    $form[$field]['#title'] = NULL;
+    $output .= '<tr><td class="oet-label">'. $title .':</td><td>' . drupal_render($form[$field]) .'</td></tr>';
+  }
+  $output .= '</table>';
+  
+  return $output;
 }
 
 /**
