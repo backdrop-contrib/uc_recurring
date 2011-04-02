@@ -24,7 +24,7 @@ function uc_recurring_subscription_overview($form, &$form_state) {
                       FROM {node} n
                         LEFT JOIN {uc_recurring_subscription} rs ON rs.nid=n.nid
                       WHERE n.type = :n.type
-                      ORDER BY rs.weight", array(':n.type' => : n . type, '' => array(':n.type' => $product_class)));
+                      ORDER BY rs.weight", array(':n.type' => $product_class));
 
   $roles = user_roles(TRUE);
 
@@ -87,14 +87,12 @@ function uc_recurring_subscription_overview($form, &$form_state) {
  */
 function uc_recurring_subscription_overview_submit($form, &$form_state) {
   foreach ($form_state['values']['products'] as $nid => $product) {
-    // TODO Please review the conversion of this statement to the D7 database API syntax.
-    /* db_query("UPDATE {uc_recurring_subscription} SET weight = %d WHERE nid = %d", $product['weight'], $nid) */
     db_update('uc_recurring_subscription')
-  ->fields(array(
-      'weight' => $product['weight'],
-    ))
-  ->condition('nid', $nid)
-  ->execute();
+      ->fields(array(
+        'weight' => $product['weight'],
+      ))
+      ->condition('nid', $nid)
+      ->execute();
   }
 }
 
@@ -291,30 +289,39 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
     );
   }
 
-  if (module_exists('uc_og_subscribe')) {
-    $form['access']['og'] = array(
-      '#type' => 'fieldset',
-      '#title' => 'Organic Groups',
-      '#description' => t('Select which organic groups a user should be subscribed to on a new subscripion purchased or unsubscribed when the subscription expires.'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#theme' => 'uc_recurring_subscription_og_items',
-    );
-    $groups = uc_og_subscribe_get_groups();
-    $form['access']['og']['subscribe_gid'] = array(
-      '#type' => 'select',
-      '#default_value' => $node->subscription->access['subscribe_gid'],
-      '#options' => $groups,
-      '#multiple' => TRUE,
-      '#parents' => array('access', 0, 'subscribe_gid'),
-    );
-    $form['access']['og']['unsubscribe_gid'] = array(
-      '#type' => 'select',
-      '#default_value' => $node->subscription->access['unsubscribe_gid'],
-      '#options' => $groups,
-      '#multiple' => TRUE,
-      '#parents' => array('access', 0, 'unsubscribe_gid'),
-    );
+  if (module_exists('og_actions')) {
+    $groups = og_all_groups_options();
+    if (count($groups)) {
+      $form['access']['og'] = array(
+        '#type' => 'fieldset',
+        '#title' => 'Organic Groups',
+        '#description' => t('Select which organic groups a user should be subscribed to on a new subscripion purchased or unsubscribed when the subscription expires.'),
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+        '#theme' => 'uc_recurring_subscription_og_items',
+      );
+      $form['access']['og']['subscribe_grant_og'] = array(
+        '#type' => 'select',
+        '#default_value' => $node->subscription->access['subscribe_grant_og'],
+        '#options' => $groups,
+        '#multiple' => TRUE,
+        '#parents' => array('access', 0, 'subscribe_grant_og'),
+      );
+      $form['access']['og']['expire_grant_og'] = array(
+        '#type' => 'select',
+        '#default_value' => $node->subscription->access['expire_grant_og'],
+        '#options' => $groups,
+        '#multiple' => TRUE,
+        '#parents' => array('access', 0, 'expire_grant_og'),
+      );
+      $form['access']['og']['expire_revoke_og'] = array(
+        '#type' => 'select',
+        '#default_value' => $node->subscription->access['expire_revoke_og'],
+        '#options' => $groups,
+        '#multiple' => TRUE,
+        '#parents' => array('access', 0, 'expire_revoke_og'),
+      );
+    };
   }
 
   /*
@@ -915,14 +922,17 @@ function theme_uc_recurring_subscription_role_items($variables) {
 /**
  *
  */
+
 function theme_uc_recurring_subscription_og_items($variables) {
   $variables = $variables['form'];
   $form = $variables['form'];
-  $header = array(t('Subscribe on purchase'), t('Unsubscribe on expiration'));
+
+  $header = array(t('Subscribe on purchase'), t('Granted on expiration'), t('Revoked on expiration'));
 
   $row = array();
-  $row[] = drupal_render($form['subscribe_gid']);
-  $row[] = drupal_render_children($form['unsubscribe_gid']);
+  $row[] = drupal_render($form['subscribe_grant_og']);
+  $row[] = drupal_render($form['expire_grant_og']);
+  $row[] = drupal_render($form['expire_revoke_og']);
   $rows[] = $row;
 
   $output = theme('table', array('header' => array(

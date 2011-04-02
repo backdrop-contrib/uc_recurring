@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Implements hook_ca_entity().
+ * Implementation of hook_ca_entity().
  */
 function uc_recurring_subscription_ca_entity() {
   $entities = array();
@@ -15,7 +15,7 @@ function uc_recurring_subscription_ca_entity() {
 }
 
 /**
- * Implements hook_ca_condition().
+ * Implementation of hook_ca_condition().
  */
 function uc_recurring_subscription_ca_condition() {
   $condition = array();
@@ -23,7 +23,7 @@ function uc_recurring_subscription_ca_condition() {
 }
 
 /**
- * Implements hook_ca_action().
+ * Implementation of hook_ca_action().
  */
 function uc_recurring_subscription_ca_action() {
   // actions to grant/revoke role on user account.
@@ -50,12 +50,12 @@ function uc_recurring_subscription_ca_action() {
     ),
   );
 
-  if (module_exists('uc_og_subscribe')) {
+  if (module_exists('og_actions')) {
     // actions to subscribe/unsubscribe user from organic group.
-    $actions['uc_recurring_subscription_subscribe_og'] = array(
-      '#title' => t('Subscribe user to an organic group.'),
+    $actions['uc_recurring_subscription_grant_og'] = array(
+      '#title' => t('Grant organic group membership on order.'),
       '#category' => t('Organic Group'),
-      '#callback' => 'uc_recurring_subscription_action_subscribe_og',
+      '#callback' => 'uc_recurring_subscription_action_grant_og',
       '#arguments' => array(
         'order' => array(
           '#entity' => 'uc_order',
@@ -63,10 +63,10 @@ function uc_recurring_subscription_ca_action() {
         ),
       ),
     );
-    $actions['uc_recurring_subscription_unsubscribe_og'] = array(
-      '#title' => t('Unsubscribe user from organic group.'),
+    $actions['uc_recurring_subscription_revoke_og'] = array(
+      '#title' => t('Revoke organic group membership on order.'),
       '#category' => t('Organic Group'),
-      '#callback' => 'uc_recurring_subscription_action_unsubscribe_role',
+      '#callback' => 'uc_recurring_subscription_action_revoke_og',
       '#arguments' => array(
         'order' => array(
           '#entity' => 'uc_order',
@@ -75,11 +75,12 @@ function uc_recurring_subscription_ca_action() {
       ),
     );
   }
+
   return $actions;
 }
 
 /**
- * Implements hook_ca_trigger().
+ * Implementation of hook_ca_trigger().
  */
 function uc_recurring_subscription_ca_trigger() {
   // use the existing uc_recurring triggers
@@ -88,7 +89,7 @@ function uc_recurring_subscription_ca_trigger() {
 }
 
 /**
- * Implements hook_ca_predicate().
+ * Implementation of hook_ca_predicate().
  */
 function uc_recurring_subscription_ca_predicate() {
   $predicates = array();
@@ -173,7 +174,7 @@ function uc_recurring_subscription_ca_predicate() {
     '#actions' => array(
       array(
         '#name' => 'uc_recurring_subscription_revoke_role',
-        '#title' => t('Grant user role(s).'),
+        '#title' => t('Revoke user role(s).'),
         '#argument_map' => array(
           'order' => 'order',
         ),
@@ -185,6 +186,99 @@ function uc_recurring_subscription_ca_predicate() {
     ),
   );
 
+  // Grant organic groups to user when checkout is complete.
+  if (module_exists('og_actions')) {
+    $predicates['uc_recurring_subscription_grant_og'] = array(
+      '#title' => t('Grant organic groups on subscription created.'),
+      '#trigger' => 'uc_order_status_update',
+      '#class' => 'og',
+      '#status' => 1,
+      '#weight' => 1,
+      '#conditions' => array(
+        '#operator' => 'AND',
+        '#conditions' => array(
+          array(
+            '#name' => 'uc_order_status_condition',
+            '#title' => t('If order status is completes.'),
+            '#argument_map' => array(
+              'order' => 'updated_order',
+            ),
+            '#settings' => array(
+              'negate' => FALSE,
+              'order_status' => 'completed',
+            ),
+          ),
+        ),
+      ),
+      '#actions' => array(
+        array(
+          '#name' => 'uc_recurring_subscription_grant_og',
+          '#title' => t('Grant groups on subscribe.'),
+          '#argument_map' => array(
+            'order' => 'order',
+          ),
+          '#settings' => array(
+            'group_option' => 'subscribe_grant_og',
+            'groups' => array(),
+          ),
+        )
+      ),
+    );
+
+    // Grant organic groups to user when subscription expires.
+    $predicates['uc_recurring_subscription_expired_grant_og'] = array(
+      '#title' => t('Grant organic groups on subscription expiration.'),
+      '#trigger' => 'uc_recurring_renewal_expired',
+      '#class' => 'og',
+      '#status' => 1,
+      '#weight' => 1,
+      '#conditions' => array(
+        '#operator' => 'AND',
+        '#conditions' => array(
+        ),
+      ),
+      '#actions' => array(
+        array(
+          '#name' => 'uc_recurring_subscription_grant_og',
+          '#title' => t('Grant groups on expire.'),
+          '#argument_map' => array(
+            'order' => 'order',
+          ),
+          '#settings' => array(
+            'group_option' => '',
+            'groups' => array(),
+          ),
+        )
+      ),
+    );
+
+    // Revoke user roles to user when subscription expires.
+    $predicates['uc_recurring_subscription_expired_revoke_og'] = array(
+      '#title' => t('Revoke organic groups on subscription expiration.'),
+      '#trigger' => 'uc_recurring_renewal_expired',
+      '#class' => 'og',
+      '#status' => 1,
+      '#weight' => 1,
+      '#conditions' => array(
+        '#operator' => 'AND',
+        '#conditions' => array(
+        ),
+      ),
+      '#actions' => array(
+        array(
+          '#name' => 'uc_recurring_subscription_revoke_og',
+          '#title' => t('Revoke groups on expire.'),
+          '#argument_map' => array(
+            'order' => 'order',
+          ),
+          '#settings' => array(
+            'group_option' => 'expire_revoke_og',
+            'groups' => array(),
+          ),
+        )
+      ),
+    );
+  };
 
   return $predicates;
 }
@@ -301,4 +395,82 @@ function uc_recurring_subscription_action_revoke_role($order, $settings) {
  */
 function uc_recurring_subscription_action_revoke_role_form($form_state, $settings = array()) {
   return uc_recurring_subscription_action_grant_role_form($form_state, $settings);
+}
+
+/**
+ * Grant Organic Group CA form.
+ */
+function uc_recurring_subscription_action_grant_og_form($form_state, $settings = array()) {
+  drupal_add_css(drupal_get_path('module', 'uc_recurring_subscription') .'/uc_recurring_subscription.css');
+  $form['group_option'] = array(
+    '#type' => 'radios',
+    '#title' => t('Where are the groups(s) defined?'),
+    '#attributes' => array('class' => 'ca-role-select-option'),
+    '#options' => array(
+      'subscribe_grant_og' => t('Apply the groups set by the Subscription Manager on creation.'),
+      'expire_grant_og' => t('Apply the groups set by the Subscription Manager on expiration.'),
+      'expire_revoke_og' => t('Revoke the groups set by the Subscription Manager on expiration.'),
+      'custom' => t('Custom selected groups (select from below)'),
+    ),
+    '#default_value' => $settings['group_option'],
+  );
+  $form += og_subscribe_user_action_form($settings);
+  $form['groups']['#required'] = FALSE;
+  $form['groups']['#description'] = t('Hold CTRL key and left mouse click to select multiple groups.');
+  return $form;
+}
+
+/**
+ * Revoke Organic Group CA form - same as the grant role form
+ */
+function uc_recurring_subscription_action_revoke_og_form($form_state, $settings = array()) {
+  return uc_recurring_subscription_action_grant_og_form($form_state, $settings);
+}
+
+/**
+ * Grant user organic groups.
+ */
+function uc_recurring_subscription_action_grant_og($order, $settings) {
+  // Load user.
+  if (!$order->uid || !($account = user_load($order->uid))) {
+    return;
+  }
+  if ($settings['group_option'] == 'custom' && is_array($settings['groups']) && !empty($settings['groups'])) {
+    og_subscribe_user_action($account, $settings['groups']);
+  }
+  else {
+    foreach ($order->products as $pid => $product) {
+      $subscription = uc_recurring_subscription_load($product->nid);
+      $context['groups'] = $subscription->access[$settings['group_option']];
+      if (is_array($context['groups']) && !empty($context['groups'])) {
+        og_subscribe_user_action($account, $context);
+        $comment = t('User access granted to group(s): %group.', array('%group' => implode(',', $context['groups'])));
+        uc_order_comment_save($order->order_id, $account->uid, $comment);
+      }
+    }
+  }
+}
+
+/**
+ * Revoke user organic groups.
+ */
+function uc_recurring_subscription_action_revoke_og($order, $settings) {
+  // Load user.
+  if (!$order->uid || !($account = user_load($order->uid))) {
+    return;
+  }
+  if ($settings['group_option'] == 'custom' && is_array($settings['groups']) && !empty($settings['groups'])) {
+    og_unsubscribe_user_action($account, $settings['groups']);
+  }
+  else {
+    foreach ($order->products as $pid => $product) {
+      $subscription = uc_recurring_subscription_load($product->nid);
+      $context['groups'] = $subscription->access[$settings['group_option']];
+      if (is_array($context['groups']) && !empty($context['groups'])) {
+        og_unsubscribe_user_action($account, $context);
+        $comment = t('User access revoked for group(s): %group.', array('%group' => implode(',', $context['groups'])));
+        uc_order_comment_save($order->order_id, $account->uid, $comment);
+      }
+    }
+  }
 }
