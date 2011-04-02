@@ -295,7 +295,7 @@ function uc_recurring_user_fees($user) {
 /**
  * Implements hook_uc_order().
  */
-function uc_recurring_uc_order($op, &$arg1, $arg2) {
+function uc_recurring_uc_order($op, $arg1, $arg2) {
   switch ($op) {
     case 'delete':
       $fees = uc_recurring_get_fees($arg1);

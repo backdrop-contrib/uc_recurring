@@ -314,7 +314,7 @@ function uc_recurring_product_form_uc_order_view_update_form_alter(&$form, $form
 /**
  * Implements hook_uc_order().
  */
-function uc_recurring_product_uc_order($op, &$arg1, $arg2) {
+function uc_recurring_product_uc_order($op, $arg1, $arg2) {
   switch ($op) {
     // TODO: Allow admin to create a recurring order from "create order" page.
     case 'submit':

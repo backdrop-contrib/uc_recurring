@@ -237,9 +237,9 @@ function uc_recurring_order_pane_checkout($op, &$arg1, $arg2) {
 }
 
 /**
- * Implements hook_order().
+ * Implements hook_uc_order().
  */
-function uc_recurring_order_order($op, &$arg1, $arg2) {
+function uc_recurring_order_uc_order($op, $arg1, $arg2) {
   switch ($op) {
     // TODO: Allow admin to create a recurring order from "create order" page.
     case 'submit':
