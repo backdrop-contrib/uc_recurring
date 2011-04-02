@@ -149,16 +149,10 @@ function uc_recurring_hosted_subscription_load($id, $type = 'rfid') {
   $return = array();
 
   if ($type == 'rfid') {
-    $return = db_fetch_object(db_query("SELECT * FROM {uc_recurring_hosted} WHERE rfid = :rfid", array(':rfid' => : rfid, '' => array(
-        ':rfid' => : rfid,
-        '' => array(':rfid' => $id),
-      ))));
+    $return = db_fetch_object(db_query("SELECT * FROM {uc_recurring_hosted} WHERE rfid = :rfid", array(':rfid' => $id)));
   }
   elseif ($type == 'subscription_id') {
-    $return = db_fetch_object(db_query("SELECT * FROM {uc_recurring_hosted} WHERE subscription_id = :subscription_id", array(':subscription_id' => : subscription_id, '' => array(
-        ':subscription_id' => : subscription_id,
-        '' => array(':subscription_id' => $id),
-      ))));
+    $return = db_fetch_object(db_query("SELECT * FROM {uc_recurring_hosted} WHERE subscription_id = :subscription_id", array(':subscription_id' => $id)));
   }
 
   drupal_alter('uc_recurring_hosted_subscription', $object);
