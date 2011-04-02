@@ -16,7 +16,7 @@ function uc_recurring_token_values($type, $object = NULL) {
 
       $values['recurring-fee-id'] = $fee->rfid;
       $values['next-charge'] = format_date($fee->next_charge);
-      $values['fee-amount'] = $fee->fee_amount;
+      $values['fee-amount'] = uc_store_format_price_field_value($fee->fee_amount);
       $values['fee-title'] = $fee->fee_title;
       $values['charged-intervals'] = $fee->charged_intervals;
       $values['remaining-intervals'] = $fee->remaining_intervals < 0 ? t('Until cancelled') : $fee->remaining_intervals;
