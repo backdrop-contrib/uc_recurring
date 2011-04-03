@@ -381,8 +381,7 @@ function uc_recurring_renew($fee) {
     if (!$fee->own_handler) {
       uc_recurring_process_extensions($fee);
     }
-
-    $message = t('Error: Recurring fee <a href="@orders-recurring-view">@fee</a> for product @model failed.', array('@orders-recurring-view' => url('admin/store/orders/recurring/view/fee/'. $fee->rfid), '@fee' => $fee->rfid, '@model' => $fee->data['model']))
+    $message = t('Error: Recurring fee <a href="@orders-recurring-view">@fee</a> for product @model failed.', array('@orders-recurring-view' => url('admin/store/orders/recurring/view/fee/'. $fee->rfid), '@fee' => $fee->rfid, '@model' => $fee->data['model']));
     // Add comment to both new and original orders.
     uc_order_comment_save($fee->order_id, $user->uid, $message);
     uc_order_comment_save($order->order_id, $user->uid, $message);
