@@ -58,8 +58,10 @@ function uc_recurring_order_settings_form($form) {
  * @see http://drupal.org/node/1354
  */
 function uc_recurring_order_settings_form_validate($form, &$form_state) {
+  $errors = '';
   $options = preg_split('/[\r\n]+/', $form_state['values']['interval_options']);
   foreach ($options as $key => $value) {
+    if (!$value) continue;
     $i = explode('|', $value);
     if (strtotime($i[0])) {
       $intervals[$i[0]] = (isset($i[1]) && $i[1] !== '') ? $i[1] : $i[0];
@@ -337,8 +339,7 @@ function uc_recurring_order_recurring_renewal_pending(&$order, $fee) {
   // recreate order
   if (!empty($fee->data['uc_recurring_order'])) {
     $order->products = $fee->data['uc_recurring_order']['products'];
-    $result = db_query("SELECT * FROM {uc_order_line_items} WHERE order_id = :order_id", array(':order_id' => $fee->order_id),
-      )));
+    $result = db_query("SELECT * FROM {uc_order_line_items} WHERE order_id = :order_id", array(':order_id' => $fee->order_id));
     foreach ($result as $line_item) {
       uc_order_line_item_add($order->order_id, $line_item->type, $line_item->title, $line_item->amount, $line_item->weight, $line_item->data);
     }
