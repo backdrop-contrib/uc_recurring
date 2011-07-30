@@ -320,6 +320,10 @@ function uc_recurring_uc_checkout_complete($order, $account) {
     if ($fee->uid == 0) { // check for anonymous uid
       $fee->uid = $order->uid;
       uc_recurring_fee_user_save($fee);
+      $result = db_result(db_query("SELECT COUNT(*) FROM {uc_payment_receipts} WHERE order_id = '%d'", $order->order_id));
+      if ($result) {
+        db_query("UPDATE {uc_payment_receipts} SET uid = '%d' WHERE order_id='%d'", $order->uid, $order->order_id);
+      }
     }
   }
 }
