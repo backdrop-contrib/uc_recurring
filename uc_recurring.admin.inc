@@ -258,7 +258,7 @@ function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
     );
     $form['regular']['regular_interval_value'] = array(
       '#type' => 'select',
-      '#options' => drupal_map_assoc(uc_range(1, 52)),
+      '#options' => drupal_map_assoc(range(1, 52)),
       '#default_value' => $fee->regular_interval_value,
     );
     $form['regular']['regular_interval_unit'] = array(

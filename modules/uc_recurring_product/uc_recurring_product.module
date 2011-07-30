@@ -94,7 +94,7 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
   $form['interval']['initial']['initial_charge_value'] = array(
     '#type' => 'select',
     '#title' => t(''),
-    '#options' => drupal_map_assoc(uc_range(0, 52)),
+    '#options' => drupal_map_assoc(range(0, 52)),
     '#default_value' => isset($product->initial_charge_value) ? $product->initial_charge_value : 1,
   );
   $form['interval']['initial']['initial_charge_unit'] = array(
@@ -117,7 +117,7 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
   );
   $form['interval']['regular']['regular_interval_value'] = array(
     '#type' => 'select',
-    '#options' => drupal_map_assoc(uc_range(1, 52)),
+    '#options' => drupal_map_assoc(range(1, 52)),
     '#default_value' => isset($product->regular_interval_value) ? $product->regular_interval_value : 1,
   );
   $form['interval']['regular']['regular_interval_unit'] = array(
