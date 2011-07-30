@@ -245,7 +245,7 @@ function uc_recurring_order_uc_order($op, $arg1, $arg2) {
   switch ($op) {
     // TODO: Allow admin to create a recurring order from "create order" page.
     case 'submit':
-      $recurring = $arg1->data['recurring_option'];
+      $recurring = isset($arg1->data['recurring_option']) ? $arg1->data['recurring_option'] : 0;
       $next_renewal = strtotime('+' . $recurring);
       if ($next_renewal > REQUEST_TIME && variable_get('uc_recurring_checkout_process', TRUE)) {
         if (uc_recurring_order_process_order($arg1, $recurring) === FALSE) {
