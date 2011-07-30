@@ -75,9 +75,10 @@ function uc_recurring_authorizenet_cim_process($order, &$fee) {
  */
 function uc_recurring_authorizenet_cim_renew($order, &$fee) {
   if (!empty($order->data['cc_txns']['references'])) {
+    $refs = array_keys($order->data['cc_txns']['references']);
     $data = array(
       'txn_type' => UC_CREDIT_REFERENCE_TXN,
-      'ref_id' => end(array_keys($order->data['cc_txns']['references'])),
+      'ref_id' => end($refs),
     );
     $result = uc_authorizenet_charge($order->order_id, $order->order_total, $data);
 
@@ -92,7 +93,7 @@ function uc_recurring_authorizenet_cim_renew($order, &$fee) {
 /**
  * Create form for updating credit card details for recurring fee.
  */
-function uc_recurring_authorizenet_cim_update_form($form_state, $rfid) {
+function uc_recurring_authorizenet_cim_update_form($form, $form_state, $rfid) {
   // Load fee.
   $fee = uc_recurring_fee_user_load($rfid);
   // Load corresponding order.
@@ -108,7 +109,7 @@ function uc_recurring_authorizenet_cim_update_form($form_state, $rfid) {
     '#theme' => 'uc_payment_method_credit_form',
     '#tree' => TRUE,
   );
-  $form['cc_data'] = array_merge($form['cc_data'], uc_payment_method_credit_form(array(), $order));
+  $form['cc_data'] = array_merge($form['cc_data'], uc_payment_method_credit_form($form, $form_state, $order));
   unset($form['cc_data']['cc_policy']);
 
   // Make credit card info form items required
@@ -138,7 +139,7 @@ function uc_recurring_authorizenet_cim_update_form($form_state, $rfid) {
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Update'),
-    '#suffix' => l(t('Cancel'), 'user/' . $user->uid),
+    '#suffix' => l(t('Cancel'), 'admin/store/orders/recurring/view/fee/' . $rfid),
   );
 
   return $form;
@@ -162,21 +163,21 @@ function uc_recurring_authorizenet_cim_update_form_validate(&$form, &$form_state
     // Remove the non-numeric characters
     $cc_number = preg_replace('/[^0-9]/', '', $values['cc_data']['cc_number']);
     form_set_value($form['cc_data']['cc_number'], $cc_number, $form_state);
-    if (!_valid_card_number($cc_number) || !ctype_digit($cc_number)) {
+    if (!_uc_credit_valid_card_number($cc_number) || !ctype_digit($cc_number)) {
       form_set_error('cc_data][cc_number', t('You have entered an invalid credit card number.'));
       $has_errors = TRUE;
     }
   }
   
   // Validate the start date (if entered).
-  if (variable_get('uc_credit_start_enabled', FALSE) && !_valid_card_start($values['cc_data']['cc_start_month'], $values['cc_data']['cc_start_year'])) {
+  if (variable_get('uc_credit_start_enabled', FALSE) && !_uc_credit_valid_card_start($values['cc_data']['cc_start_month'], $values['cc_data']['cc_start_year'])) {
     form_set_error('cc_data][cc_start_month', t('The start date you entered is invalid.'));
     form_set_error('cc_data][cc_start_year', t('The start date you entered is invalid.'));
     $has_errors = TRUE;
   }
   
   // Validate the card expiration date.
-  if (!_valid_card_expiration($values['cc_data']['cc_exp_month'], $values['cc_data']['cc_exp_year'])) {
+  if (!_uc_credit_valid_card_expiration($values['cc_data']['cc_exp_month'], $values['cc_data']['cc_exp_year'])) {
     form_set_error('cc_data][cc_exp_month', t('The credit card you entered has expired.'));
     form_set_error('cc_data][cc_exp_year', t('The credit card you entered has expired.'));
     $has_errors = TRUE;
@@ -184,13 +185,13 @@ function uc_recurring_authorizenet_cim_update_form_validate(&$form, &$form_state
   
   // Validate the issue number (if entered).  With issue numbers, '01' is
   // different from '1', but is_numeric() is still appropriate.
-  if (variable_get('uc_credit_issue_enabled', FALSE) && !_valid_card_issue($values['cc_data']['cc_issue'])) {
+  if (variable_get('uc_credit_issue_enabled', FALSE) && !_uc_credit_valid_card_issue($values['cc_data']['cc_issue'])) {
     form_set_error('cc_data][cc_issue', t('The issue number you entered is invalid.'));
     $has_errors = TRUE;
   }
 
   // Validate the CVV number if enabled.
-  if (variable_get('uc_credit_cvv_enabled', TRUE) && !_valid_cvv($values['cc_data']['cc_cvv'])) {
+  if (variable_get('uc_credit_cvv_enabled', TRUE) && !_uc_credit_valid_cvv($values['cc_data']['cc_cvv'])) {
     form_set_error('cc_data][cc_cvv', t('You have entered an invalid CVV number.'));
     $has_errors = TRUE;
   }
@@ -220,7 +221,7 @@ function uc_recurring_authorizenet_cim_update_form_submit(&$form, &$form_state) 
   $log = array();
 
   // Process billing address form changes
-  if (($bill_changes = uc_order_pane_bill_to('edit-process', $form_state['values'])) != NULL) {
+  if (($bill_changes = uc_order_pane_bill_to('edit-process', $order, $form, $form_state)) != NULL) {
     foreach ($bill_changes as $key => $value) {
       if ($order->$key != $value) {
         if (!is_array($value)) {
@@ -231,7 +232,8 @@ function uc_recurring_authorizenet_cim_update_form_submit(&$form, &$form_state) 
     }
   }
 
-  $profile_id = end(array_keys($order->data['cc_txns']['references']));
+  $refs = array_keys($order->data['cc_txns']['references']);
+  $profile_id = end($refs);
   if ($message = _uc_recurring_uc_authorizenet_cim_update_paymentprofile($order, $profile_id)) {
     drupal_set_message(t('Account update failed: @error', array('@error' => $message)), 'error');
     $form_state['redirect'] = FALSE;
@@ -246,7 +248,6 @@ function uc_recurring_authorizenet_cim_update_form_submit(&$form, &$form_state) 
     if ($log) {
       uc_order_log_changes($order->order_id, $log);
     }
-    $form_state['redirect'] = 'user/'. $form_state['values']['uid'];
   }
 }
 
@@ -322,23 +323,24 @@ function _uc_recurring_uc_authorizenet_cim_paymentprofile_update_request($order,
 /**
  * List the CIM profile information.
  */
-function uc_recurring_authorizenet_cim_profile_form($form_state, $rfid) {
+function uc_recurring_authorizenet_cim_profile_form($form, $form_state, $rfid) {
   $fee = uc_recurring_fee_user_load($rfid);
   $order = uc_order_load($fee->order_id);
-  $ref_id = end(array_keys($order->data['cc_txns']['references']));
+  $refs = array_keys($order->data['cc_txns']['references']);
+  $ref_id = end($refs);
   $profile = _uc_authorizenet_cim_profile_get($order, $ref_id);
 
   $header = array_keys($profile);
   $rows[] = array_values($profile);
 
   $form['info'] = array(
-    '#value' => t('The profile details below were return from Authorize.net'),
+    '#markup' => t('The profile details below were return from Authorize.net'),
   );
   $form['profile'] = array(
-    '#value' => theme('table', array('header' => array('header' => array(
-          'header' => $header,
-          'rows' => $rows,
-        )))),
+    '#markup' => theme('table', array('header' => $header, 'rows' => $rows)),
+  );
+  $form['return'] = array(
+    '#markup' => l(t('Return'), 'admin/store/orders/recurring/view/fee/' . $rfid),
   );
 
   return $form;
