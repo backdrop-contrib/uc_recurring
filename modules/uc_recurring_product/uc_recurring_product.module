@@ -54,7 +54,7 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
   );
 
   $attributes = array();
-  if (empty($product->fee_amount)) {
+  if ($product->fee_amount == 0) {
     $attributes['checked'] = 'checked';
   }
   $form['fee']['fee_same_product'] = array(
@@ -71,11 +71,11 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
     '#type' => 'textfield',
     '#title' => t('Recurring fee amount'),
     '#description' => t('Charge this amount each billing period.<br />The product price is still charged at checkout.'),
-    '#default_value' => empty($product->fee_amount) ? $node->sell_price : $product->fee_amount,
+    '#default_value' => $product->fee_amount == 0 ? $node->sell_price : $product->fee_amount,
     '#size' => 16,
     '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),
     '#field_suffix' => variable_get('uc_sign_after_amount', FALSE) ? variable_get('uc_currency_sign', '$') : '',
-    '#attributes' => empty($product->fee_amount) ? array('disabled' => 'disabled') : array(),
+    '#attributes' => $product->fee_amount == 0 ? array('disabled' => 'disabled') : array(),
   );
 
   $form['interval'] = array(
@@ -179,7 +179,7 @@ function uc_recurring_product_feature_form_submit($form, &$form_state) {
   // Build the recurring fee's product object.
   $product->pfid = $pfid;
   $product->model = $form_state['values']['model'];
-  $product->fee_amount = $form_state['values']['fee_amount'];
+  $product->fee_amount = $form_state['values']['fee_same_product'] ? 0 : $form_state['values']['fee_amount'];
   $product->initial_charge = $form_state['values']['initial_charge_value'] . ' ' . $form_state['values']['initial_charge_unit'];
   $product->regular_interval = $form_state['values']['regular_interval_value'] . ' ' . $form_state['values']['regular_interval_unit'];
   // If number intervals is negative, it means that it's unlimited intervals.
