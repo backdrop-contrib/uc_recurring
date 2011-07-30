@@ -717,6 +717,10 @@ function uc_recurring_fee_user_save($fee) {
   else {
     drupal_write_record('uc_recurring_users', $fee);
   }
+
+  // Allow modules to do things with the full object (always with rfid).
+  module_invoke_all('recurring_fee_user_saved', $fee);
+
   return $fee->rfid;
 }
 

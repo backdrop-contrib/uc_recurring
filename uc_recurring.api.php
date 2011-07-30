@@ -136,6 +136,15 @@ function hook_recurring_product_deleted($pfid) { }
 function hook_recurring_user_deleted($rfid) { }
 
 /**
+ * Act on recurring user that has just been saved (inserted or updated).
+ *
+ * @param $fee
+ *   The recurring fee object.
+ */
+function hook_recurring_fee_user_saved($fee) {
+}
+
+/**
  * Set the access permission on user operations.
  *
  * @param $fee
