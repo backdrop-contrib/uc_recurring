@@ -188,6 +188,13 @@ function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
       '#size' => 60,
     );
 
+    $form['fee_status'] = array(
+      '#type' => 'select',
+      '#title' => t('Recurring fee status'),
+      '#default_value' => $fee->status,
+      '#options' => uc_recurring_fee_status_label(),
+    );
+
     $form['fee_amount'] = array(
       '#type' => 'textfield',
       '#title' => t('Recurring fee amount'),
@@ -314,6 +321,7 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
   $number_intervals = empty($form_state['values']['unlimited_intervals']) ? $form_state['values']['number_intervals'] : UC_RECURRING_UNLIMITED_INTERVALS;
   $fee_amount = $form_state['values']['fee_amount'];
   $fee_title = $form_state['values']['fee_title'];
+  $fee_status = $form_state['values']['fee_status'];
 
   $next_charge = $fee->next_charge;
   if ($form_state['values']['reset_next_charge']) {
@@ -331,10 +339,10 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
   }
 
   // TODO Please convert this statement to the D7 database API syntax.
-  // TODO Please convert this statement to the D7 database API syntax.
+  // todo - replace with a drupal_write_record()
   db_query("UPDATE {uc_recurring_users} SET fee_title = '%s', fee_amount = %f, regular_interval = '%s', "
-          . "remaining_intervals = %d, next_charge = %d WHERE rfid = %d", $fee_title, $fee_amount,
-           $interval, $number_intervals, $next_charge, $rfid);
+          ."remaining_intervals = %d, next_charge = %d, status = %d WHERE rfid = %d", $fee_title, $fee_amount,
+           $interval, $number_intervals, $next_charge, $fee_status, $rfid);
 
   $context = array(
     'revision' => 'themed-original',
