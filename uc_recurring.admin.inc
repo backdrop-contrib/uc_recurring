@@ -386,9 +386,15 @@ function uc_recurring_payment_form($form, &$form_state) {
   $options = array();
   $methods = uc_recurring_get_recurring_info();
   foreach ($methods as $fee_handler => $method) {
+    if (!uc_recurring_payment_method_supported($fee_handler)) {
+      continue;
+    }
     if (isset($method['payment method']) && $fee_handler == $method['payment method']) {
       $options[$fee_handler] = $method['name'] . ' (' . $method['fee handler'] . ')';
     }
+  }
+  if (empty($options)) {
+    drupal_set_message('No supported payment methods found. Recurring cannot be collected without a supported payment method.', 'error');
   }
   $form['uc_recurring_payment_methods'] = array(
     '#type' => 'checkboxes',
