@@ -295,10 +295,10 @@ function uc_recurring_user_fees($user) {
 /**
  * Implements hook_uc_order().
  */
-function uc_recurring_uc_order($op, $arg1, $arg2) {
+function uc_recurring_uc_order($op, $order, $arg2) {
   switch ($op) {
     case 'delete':
-      $fees = uc_recurring_get_fees($arg1);
+      $fees = uc_recurring_get_fees($order);
       foreach ($fees as $fee) {
         uc_recurring_fee_cancel($fee->rfid, $fee);
         uc_recurring_fee_user_delete($fee->rfid);
@@ -317,12 +317,16 @@ function uc_recurring_uc_order($op, $arg1, $arg2) {
 function uc_recurring_uc_checkout_complete($order, $account) {
   $fees = uc_recurring_get_fees($order);
   foreach ($fees as $fee) {
-    if ($fee->uid == 0) { // check for anonymous uid
+    // Check for anonymous users.
+    if ($fee->uid == 0) {
       $fee->uid = $order->uid;
       uc_recurring_fee_user_save($fee);
-      $result = db_result(db_query("SELECT COUNT(*) FROM {uc_payment_receipts} WHERE order_id = '%d'", $order->order_id));
-      if ($result) {
-        db_query("UPDATE {uc_payment_receipts} SET uid = '%d' WHERE order_id='%d'", $order->uid, $order->order_id);
+      $has_rows = (bool) db_query_range('SELECT 1 FROM {uc_payment_receipts} WHERE order_id = :order_id', 0, 1, array(':order_id' => $order->order_id))->fetchField();
+      if ($has_rows) {
+        db_update('uc_payment_receipts')
+          ->fields(array('uid' => $order->uid))
+          ->condition('order_id', $order->order_id)
+          ->execute();
       }
     }
   }
@@ -385,11 +389,21 @@ function uc_recurring_renew($fee) {
     if (!$fee->own_handler) {
       uc_recurring_process_extensions($fee);
     }
-    $message = t('Error: Recurring fee <a href="@orders-recurring-view">@fee</a> for product @model failed.', array('@orders-recurring-view' => url('admin/store/orders/recurring/view/fee/'. $fee->rfid), '@fee' => $fee->rfid, '@model' => $fee->data['model']));
+    if ($fee->module == 'uc_recurring_product') {
+      $message = t('Error: Recurring fee <a href="@orders-recurring-view">@fee</a> for product @model failed.', array('@orders-recurring-view' => url('admin/store/orders/recurring/view/fee/' . $fee->rfid), '@fee' => $fee->rfid, '@model' => $fee->data['model']));
+    }
+    else {
+      $message = t('Error: Recurring fee <a href="@orders-recurring-view">@fee</a> for order @order_id failed.', array('@orders-recurring-view' => url('admin/store/orders/recurring/view/fee/' . $fee->rfid), '@fee' => $fee->rfid, '@order_id' => $fee->order_id));
+    }
     // Add comment to both new and original orders.
     uc_order_comment_save($fee->order_id, $user->uid, $message);
     uc_order_comment_save($order->order_id, $user->uid, $message);
-    watchdog('uc_recurring', 'Failed to capture recurring fee of @amount for product @model on order @order_id.', array('@amount' => $fee->fee_amount, '@model' => $fee->data['model'], '@order_id' => $fee->order_id), WATCHDOG_ERROR, l(t('order !order_id', array('!order_id' => $fee->order_id)), 'admin/store/orders/'. $fee->order_id));
+    if ($fee->module == 'uc_recurring_product') {
+      watchdog('uc_recurring', 'Failed to capture recurring fee of @amount for product @model on order @order_id.', array('@amount' => $fee->fee_amount, '@model' => $fee->data['model'], '@order_id' => $fee->order_id), WATCHDOG_ERROR, l(t('order !order_id', array('!order_id' => $fee->order_id)), 'admin/store/orders/'. $fee->order_id));
+    }
+    else {
+      watchdog('uc_recurring', 'Failed to capture recurring fee of @amount for order @order_id.', array('@amount' => $fee->fee_amount, '@order_id' => $fee->order_id), WATCHDOG_ERROR, l(t('order !order_id', array('!order_id' => $fee->order_id)), 'admin/store/orders/'. $fee->order_id));
+    }
 
     module_invoke_all('recurring_renewal_failed', $order, $fee);
     // @todo - replace with rules
@@ -409,7 +423,7 @@ function uc_recurring_create_renewal_order($fee) {
   $old_id = $order->order_id;
 
   // Create a new order by cloning the current order and replacing order ID.
-  $new_order = uc_order_new($order->uid, 'processing');
+  $new_order = uc_order_new($order->uid, 'post_checkout');
   $new_id = $new_order->order_id;
 
   // Add a comment in the new and original order history.
@@ -503,7 +517,7 @@ function uc_recurring_process_extensions(&$fee) {
 function uc_recurring_extend_fee(&$fee, $extend_seconds) {
   $fee->attempts++;
   $fee->next_charge += $extend_seconds;
-  $fee->data['extension'] += $extend_seconds;
+  $fee->data['extension'] = isset($fee->data['extension']) ? $fee->data['extension'] + $extend_seconds : $extend_seconds;
   if ($extend_seconds <= 0) {
     $fee->remaining_intervals = 0;
   }
@@ -559,18 +573,14 @@ function uc_recurring_get_extension_list($fee_id = NULL) {
  *   The number of seconds to extend the order by.
  */
 function uc_recurring_save_extensions($extensions, $fee_id = NULL) {
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query("DELETE FROM {uc_recurring_extensions} WHERE pfid IS NULL") */
   db_delete('uc_recurring_extensions')
-  ->condition('pfid', NULL)
-  ->execute();
+    ->isNull('pfid')
+    ->execute();
 
   $extend = explode(',', $extensions);
   $count = 0;
   foreach ($extend as $days_to_extend) {
     $seconds = $days_to_extend * (24 * 60 * 60);
-    // TODO Please review the conversion of this statement to the D7 database API syntax.
-    /* db_query("INSERT INTO {uc_recurring_extensions} (rebill_attempt, time_to_extend) VALUES (%d, %d)", $count, $seconds) */
     $id = db_insert('uc_recurring_extensions')
       ->fields(array(
         'rebill_attempt' => $count,
@@ -580,8 +590,6 @@ function uc_recurring_save_extensions($extensions, $fee_id = NULL) {
     $count++;
   }
   // Last extension set extension to 0 to expire.
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query("INSERT INTO {uc_recurring_extensions} (rebill_attempt, time_to_extend) VALUES (%d, 0)", $count) */
   $id = db_insert('uc_recurring_extensions')
     ->fields(array(
       'rebill_attempt' => $count,
@@ -733,7 +741,7 @@ function uc_recurring_fee_user_save($fee) {
  *   The recurring fee object.
  */
 function uc_recurring_fee_user_load($rfid) {
-  $fee = db_query("SELECT ru.*, u.name FROM {uc_recurring_users} ru JOIN users u ON u.uid = ru.uid WHERE rfid = :rfid", array(':rfid' => $rfid))->fetchObject();
+  $fee = db_query("SELECT ru.*, u.name FROM {uc_recurring_users} ru JOIN {users} u ON u.uid = ru.uid WHERE rfid = :rfid", array(':rfid' => $rfid))->fetchObject();
   if ($fee) {
     $fee->data = unserialize($fee->data);
 
@@ -752,11 +760,9 @@ function uc_recurring_fee_user_load($rfid) {
  */
 function uc_recurring_fee_user_delete($rfid) {
   module_invoke_all('recurring_user_delete', $rfid);
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query("DELETE FROM {uc_recurring_users} WHERE rfid = %d", $rfid) */
   db_delete('uc_recurring_users')
-  ->condition('rfid', $rfid)
-  ->execute();
+    ->condition('rfid', $rfid)
+    ->execute();
 }
 
 /**
@@ -806,22 +812,37 @@ function uc_recurring_fee_cancel($rfid, $fee = NULL) {
  */
 function uc_recurring_get_fees($order, $reset = FALSE) {
   static $fees = array();
+
+  // New orders will not have any recurring fees to get so get out now.
+  if (empty($order->order_id)) {
+    return array();
+  }
+
   if ($reset || empty($fees[$order->order_id])) {
     if (!empty($order->products)) {
       $products = array();
       foreach ($order->products as $value) {
-        $products[$value->order_product_id] = $value->order_product_id;
+        if (isset($value->order_product_id)) {
+          $products[$value->order_product_id] = $value->order_product_id;
+        }
       }
 
-      $products[] = 1;
-      // TODO Please review the conversion of this statement to the D7 database API syntax.
-      $result = db_query("SELECT ru.*, u.name FROM {uc_recurring_users} ru LEFT JOIN {users} u ON u.uid=ru.uid WHERE order_product_id IN (:products)", array(':products' => $products));
+      // Because of the way this works if we don't have any products we need to
+      // make sure no fees show up in the results. We can't send an empty array.
+      if (empty($products)) {
+        $products[] = -1;
+      }
 
-      if (!empty($result)) {
-        foreach ($result as $fee) {
-          $fee->data = unserialize($fee->data);
-          $fees[$order->order_id][] = $fee;
-        }
+      $query = db_select('uc_recurring_users', 'ru');
+      $query->leftjoin('users', 'u', 'u.uid = ru.uid');
+      $result = $query->fields('ru')
+        ->fields('u', array('name'))
+        ->condition('ru.order_product_id', $products, 'IN')
+        ->execute();
+
+      foreach ($result as $fee) {
+        $fee->data = unserialize($fee->data);
+        $fees[$order->order_id][] = $fee;
       }
     }
   }
@@ -1155,7 +1176,10 @@ function uc_recurring_get_fee_ops($context, $fee) {
  *   The fee object passed by reference.
  */
 function uc_recurring_set_intervals(&$fee) {
-  $fee->next_charge = strtotime('+' . $fee->regular_interval, $fee->next_charge) - $fee->data['extension'];
+  $fee->next_charge = strtotime('+' . $fee->regular_interval, $fee->next_charge);
+  if (!empty($fee->data['extension'])) {
+    $fee->next_charge -= $fee->data['extension'];
+  }
   if ($fee->remaining_intervals > 0) {
     $fee->remaining_intervals--;
   }

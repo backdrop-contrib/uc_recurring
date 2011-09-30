@@ -114,7 +114,7 @@ function uc_recurring_subscription_enable() {
   variable_set('node_options_' . $pcid, variable_get('node_options_product', array('status', 'promote')));
   variable_set('uc_recurring_subscription_product_class', $pcid);
 
-  $attribute = new stdClass();
+  $attribute = new stdClass(); //@todo. There is something incorrect here because if you uninstall and reinstall, you get duplicate entries in the db.
   $attribute->name = 'uc_recurring_subscription_payment_options';
   $attribute->label = 'Payment Option';
   $attribute->ordering = 0;

@@ -83,6 +83,7 @@ function uc_recurring_authorizenet_cim_renew($order, &$fee) {
     $result = uc_authorizenet_charge($order->order_id, $order->order_total, $data);
 
     if ($result['success'] == TRUE) {
+      $result['data'] = (isset($result['data'])) ? $result['data'] : "";
       uc_payment_enter($order->order_id, $order->payment_method, $order->order_total, $fee->uid, $result['data'], $result['comment']);
       return TRUE;
     }

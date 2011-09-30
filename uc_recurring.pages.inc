@@ -9,7 +9,7 @@
  * Displays the confirmation form for cancelling a recurring fee.
  */
 function uc_recurring_user_cancel_form($form, $form_state, $rfid, $fee_handler) {
-  $cancel_path = uc_referer_uri();
+  $cancel_path = request_uri();
 
   $fee = uc_recurring_fee_user_load($rfid);
   if ($fee->fee_handler == $fee_handler) {

@@ -152,6 +152,8 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
   );
   // We look at the default option for the trial information.
   $trial_product = new stdClass();
+  $trial_product->initial_charge_value = 0;
+  $trial_product->initial_charge_unit = 0;
   $aid = variable_get('uc_recurring_subscription_attribute', '');
   if (!empty($aid) && isset($node->attributes[$aid])) {
     $default_option = $node->attributes[$aid]->default_option;
@@ -279,7 +281,7 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
       '#options' => $roles,
       '#multiple' => TRUE,
       '#default_value' => $node->subscription->access['subscribe_grant'],
-      '#attributes' => array('class' => 'role-option'), // @todo Class is array?
+      '#attributes' => array('class' => array('role-option')),
       '#parents' => array('access', 0, 'subscribe_grant'),
     );
     $form['access']['role']['expire_grant'] = array(
@@ -287,7 +289,7 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
       '#options' => $roles,
       '#multiple' => TRUE,
       '#default_value' => $node->subscription->access['expire_grant'],
-      '#attributes' => array('class' => 'role-option'),
+      '#attributes' => array('class' => array('role-option')),
       '#parents' => array('access', 0, 'expire_grant'),
     );
     $form['access']['role']['expire_revoke'] = array(
@@ -295,7 +297,7 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
       '#options' => $roles,
       '#multiple' => TRUE,
       '#default_value' => $node->subscription->access['expire_revoke'],
-      '#attributes' => array('class' => 'role-option'),
+      '#attributes' => array('class' => array('role-option')),
       '#parents' => array('access', 0, 'expire_revoke'),
     );
   }
@@ -351,7 +353,7 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
    */
 
   if (!empty($node->nid) && $node->type != variable_get('uc_recurring_subscription_product_class', 'uc_recurring_subscription')) {
-    return confirm_form($form, '', uc_referer_uri(), t('This product is not a subscription product, saving this form will convert this product to a subscription product, which could result in data being lost if you have specified custom fields.'), t('Save product and convert to a subscription'), t('Cancel'));
+    return confirm_form($form, '', request_uri(), t('This product is not a subscription product, saving this form will convert this product to a subscription product, which could result in data being lost if you have specified custom fields.'), t('Save product and convert to a subscription'), t('Cancel'));
   }
   else {
     $form['submit'] = array(
@@ -914,7 +916,6 @@ function theme_uc_recurring_subscription_products($variables) {
  *
  */
 function theme_uc_recurring_subscription_role_items($variables) {
-  $variables = $variables['form'];
   $form = $variables['form'];
   $header = array(t('Granted on purchase'), t('Granted on expiration'), t('Revoked on expiration'));
 

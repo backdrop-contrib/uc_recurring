@@ -33,6 +33,9 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
   if (!empty($feature)) {
     $product = uc_recurring_product_fee_load($feature['pfid']);
   }
+  else {
+    $product = new StdClass();
+  }
   $options = uc_product_get_models($node);
   $form['nid'] = array(
     '#type' => 'hidden',
@@ -54,7 +57,7 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
   );
 
   $attributes = array();
-  if ($product->fee_amount == 0) {
+  if (isset($product->fee_amount) && $product->fee_amount == 0) {
     $attributes['checked'] = 'checked';
   }
   $form['fee']['fee_same_product'] = array(
@@ -71,11 +74,11 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
     '#type' => 'textfield',
     '#title' => t('Recurring fee amount'),
     '#description' => t('Charge this amount each billing period.<br />The product price is still charged at checkout.'),
-    '#default_value' => $product->fee_amount == 0 ? $node->sell_price : $product->fee_amount,
+    '#default_value' => empty($product->fee_amount) ? $node->sell_price : $product->fee_amount,
     '#size' => 16,
     '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),
     '#field_suffix' => variable_get('uc_sign_after_amount', FALSE) ? variable_get('uc_currency_sign', '$') : '',
-    '#attributes' => $product->fee_amount == 0 ? array('disabled' => 'disabled') : array(),
+    '#attributes' => (isset($product->fee_amount) && $product->fee_amount == 0) ? array('disabled' => 'disabled') : array(),
   );
 
   $form['interval'] = array(
@@ -172,9 +175,7 @@ function uc_recurring_product_feature_form_validate($form, &$form_state) {
  */
 function uc_recurring_product_feature_form_submit($form, &$form_state) {
   // Use the form specified pfid if available.
-  if (!empty($form_state['values']['pfid'])) {
-    $pfid = $form_state['values']['pfid'];
-  }
+  $pfid = empty($form_state['values']['pfid']) ? NULL : $form_state['values']['pfid'];
 
   // Build the recurring fee's product object.
   $product->pfid = $pfid;
@@ -315,12 +316,12 @@ function uc_recurring_product_form_uc_order_view_update_form_alter(&$form, $form
 /**
  * Implements hook_uc_order().
  */
-function uc_recurring_product_uc_order($op, $arg1, $arg2) {
+function uc_recurring_product_uc_order($op, $order, $arg2) {
   switch ($op) {
     // TODO: Allow admin to create a recurring order from "create order" page.
     case 'submit':
       if (variable_get('uc_recurring_checkout_process', TRUE)) {
-        if (uc_recurring_product_process_order($arg1) === FALSE) {
+        if (uc_recurring_product_process_order($order) === FALSE) {
           return array(array('pass' => FALSE, 'message' => t('Your order cannot be completed, because we could not process your recurring payment. Please review your payment details and contact us to complete your order if the problem persists.')));
         }
       }
@@ -340,6 +341,7 @@ function uc_recurring_product_uc_order($op, $arg1, $arg2) {
  */
 function uc_recurring_product_process_order($order, $data = array()) {
   global $user;
+  $return = array();
 
   // Get all the products that should have a recurring fee created for them.
   if (($products = uc_recurring_product_get_recurring_products_in_order($order))) {
@@ -349,8 +351,6 @@ function uc_recurring_product_process_order($order, $data = array()) {
       drupal_set_message(t('A handler for processing and renewing recurring fees cannot be found for the @payment-method payment method.', array('@payment-method' => $order->payment_method)), 'error');
       return FALSE;
     }
-
-    $return = array();
 
     // Create a new fee object.
     $fee_template = new stdClass();
@@ -494,17 +494,22 @@ function uc_recurring_product_get_recurring_products_in_order($order) {
     }
     if ($products) {
       // Get recurring products according to the products node IDs in the order.
-      // TODO Please convert this statement to the D7 database API syntax.
-      // TODO Please convert this statement to the D7 database API syntax.
-      $result = db_query("SELECT p.pfid, p.model, p.fee_amount, p.initial_charge, p.regular_interval, p.number_intervals, f.nid
-                          FROM {uc_recurring_product} p
-                            LEFT JOIN {uc_product_features} f ON p.pfid=f.pfid
-                          WHERE f.nid IN (:nids)", array(':nids' => $nids));
+      $query = db_select('uc_recurring_product', 'p');
+      $query->leftjoin('uc_product_features', 'f', 'p.pfid = f.pfid');
+      $result = $query->fields('p', array('pfid', 'model', 'fee_amount', 'initial_charge', 'regular_interval', 'number_intervals'))
+        ->fields('f', array('nid'))
+        ->condition('f.nid', $nids, 'IN')
+        ->execute();
 
       foreach ($result as $row) {
         foreach ($products[$row->nid] as $key => $product) {
-          // No model name indicates we should use all models.
-          if ($row->model == '' || $row->model == $product['model']) {
+          // No model name indicates we should work for all models.
+          // However, we still need to have the sku of the recurring product,
+          // otherwise recurring orders will show products without a sku.
+          if ($row->model == '') {
+            $row->model = $product['model'];
+          }
+          if ($row->model == $product['model']) {
             $return[] = $product + array('recurring product' => $row);
           }
         }
@@ -525,11 +530,9 @@ function uc_recurring_product_fee_product_save($product) {
   drupal_alter('recurring_fee_product_save', $product);
 
   // Delete existing record.
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query("DELETE FROM {uc_recurring_product} WHERE pfid = %d", $product->pfid) */
   db_delete('uc_recurring_product')
-  ->condition('pfid', $product->pfid)
-  ->execute();
+    ->condition('pfid', $product->pfid)
+    ->execute();
   drupal_write_record('uc_recurring_product', $product);
 }
 
@@ -543,8 +546,8 @@ function uc_recurring_product_fee_product_save($product) {
  */
 function uc_recurring_product_fee_load($pfid) {
   $product = db_query("SELECT pfid, model, fee_amount, initial_charge, regular_interval, number_intervals
-                      FROM {uc_recurring_product}
-                      WHERE pfid = :pfid", array(':pfid' => $pfid))->fetchObject();
+                         FROM {uc_recurring_product}
+                        WHERE pfid = :pfid", array(':pfid' => $pfid))->fetchObject();
 
   list($product->initial_charge_value, $product->initial_charge_unit) = explode(' ', $product->initial_charge);
   list($product->regular_interval_value, $product->regular_interval_unit) = explode(' ', $product->regular_interval);
@@ -563,11 +566,7 @@ function uc_recurring_product_fee_load($pfid) {
  */
 function uc_recurring_product_fee_product_delete($pfid) {
   module_invoke_all('recurring_product_delete', $pfid);
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query("DELETE FROM {uc_recurring_product} WHERE pfid = %d", $pfid) */
   db_delete('uc_recurring_product')
-  ->condition('pfid', $pfid)
-  ->execute();
+    ->condition('pfid', $pfid)
+    ->execute();
 }
-
-
