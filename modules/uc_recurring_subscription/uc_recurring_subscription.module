@@ -50,13 +50,16 @@ function uc_recurring_subscription_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('uc_recurring_subscription_overview'),
     'access arguments' => array('manage subscriptions'),
-    'type' => MENU_NORMAL_ITEM,
     'file' => 'uc_recurring_subscription.admin.inc',
   );
   $items['admin/store/subscriptions/overview'] = array(
     'title' => 'Overview',
+    'description' => 'Manage recurring subscription products.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_recurring_subscription_overview'),
+    'access arguments' => array('manage subscriptions'),
+    'file' => 'uc_recurring_subscription.admin.inc',
     'weight' => -10,
-    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   $items['admin/store/subscriptions/create'] = array(
     'title' => 'Create Subscription',
@@ -64,7 +67,6 @@ function uc_recurring_subscription_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('uc_recurring_subscription_product_form'),
     'access arguments' => array('manage subscriptions'),
-    'type' => MENU_LOCAL_TASK,
     'file' => 'uc_recurring_subscription.admin.inc',
   );
   $items['admin/store/subscriptions/%/edit'] = array(
@@ -92,7 +94,6 @@ function uc_recurring_subscription_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('uc_recurring_subscription_subscriber_list'),
     'access arguments' => array('manage subscriptions'),
-    'type' => MENU_LOCAL_TASK,
     'file' => 'uc_recurring_subscription.admin.inc',
   );
   $items['admin/store/subscriptions/settings'] = array(
@@ -101,7 +102,6 @@ function uc_recurring_subscription_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('uc_recurring_subscription_settings_form'),
     'access arguments' => array('manage subscriptions'),
-    'type' => MENU_LOCAL_TASK,
     'file' => 'uc_recurring_subscription.admin.inc',
   );
   $items['subscriptions/ahah/%'] = array(
