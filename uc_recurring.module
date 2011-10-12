@@ -57,14 +57,13 @@ define('UC_RECURRING_UNLIMITED_INTERVALS', -1);
 function uc_recurring_menu() {
   $items = array();
 
-  $items['admin/store/settings/payment/edit/recurring'] = array(
+  $items['admin/store/settings/recurring'] = array(
     'title' => 'Recurring payments',
     'description' => 'Edit the recurring payment settings.',
     'access arguments' => array('administer store'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('uc_recurring_payment_form'),
     'weight' => 0,
-    'type' => MENU_LOCAL_TASK,
     'file' => 'uc_recurring.admin.inc',
   );
 
