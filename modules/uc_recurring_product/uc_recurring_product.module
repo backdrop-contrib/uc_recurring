@@ -227,6 +227,134 @@ function uc_recurring_product_feature_save(&$product) {
 }
 
 /**
+ * Implements hook_uc_theme().
+ */
+function uc_recurring_product_theme($existing, $type, $theme, $path) {
+  return array(
+    'uc_recurring_product_message' => array(
+      'variables' => array('message' => ''),
+    ),
+  );
+}
+
+/**
+ * Implements hook_uc_cart_pane().
+ */
+function uc_recurring_product_uc_cart_pane($items) {
+  $body = array();
+  $message = variable_get('uc_recurring_product_cart_pane_message', '');
+  $order = new stdClass();
+  $order->products = uc_cart_get_contents();
+  if ($message && uc_recurring_product_get_recurring_products_in_order($order) != array()) {
+    $body = array(
+      '#type' => 'markup',
+      '#theme' => 'uc_recurring_product_message',
+      '#message' => check_markup($message),
+      '#prefix' => '<div id="uc-recurring-product-cart-pane-message">',
+      '#suffix' => '</div>',
+    );
+  }
+
+  $panes[] = array(
+    'id' => 'recurring-product-message',
+    'body' => $body,
+    'title' => t('Recurring products'),
+    'desc' => t('Displays a message to the user if their cart contains any recurring products.'),
+    'weight' => -5,
+    'enabled' => FALSE,
+  );
+  return $panes;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function uc_recurring_product_form_uc_cart_cart_settings_form_alter(&$form, &$form_state) {
+  // Settings for the message cart pane.
+  $form['recurring_products'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Recurring products'),
+    '#group' => 'cart-settings',
+  );
+  $form['recurring_products']['uc_recurring_product_cart_pane_message'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Message'),
+    '#description' => t('Displays a message to the user if their cart contains any recurring products.'),
+    '#default_value' => variable_get('uc_recurring_product_cart_pane_message', ''),
+  );
+}
+
+/**
+ * Theme a recurring product message.
+ * This is displayed to users if their cart or order contain recurring prodcuts.
+ *
+ * @ingroup themeable
+ */
+function theme_uc_recurring_product_message($variables) {
+  $output = $variables['message'];
+  return $output;
+}
+
+/**
+ * Implements hook_uc_checkout_pane().
+ *
+ * Show a pane just above the order total that allows shoppers to select
+ * recurring option for the order.
+ */
+function uc_recurring_product_uc_checkout_pane() {
+  $panes[] = array(
+    'id' => 'recurring-product',
+    'callback' => 'uc_recurring_order_checkout_pane_message',
+    'title' => t('Recurring products'),
+    'desc' => t('Displays a message to the user if their order contains any recurring products.'),
+    'weight' => -5,
+    'enabled' => FALSE,
+    'process' => FALSE,
+    'collapsible' => FALSE,
+  );
+  return $panes;
+}
+
+/**
+ * Checkout Pane callback function.
+ *
+ * Used to display a form in the checkout process so that customers
+ * can select recurring/repeat option.
+ */
+function uc_recurring_order_checkout_pane_message($op, &$order, $form = NULL, &$form_state = NULL) {
+  switch ($op) {
+    case 'view':
+      $contents = NULL;
+      $message = variable_get('uc_recurring_product_checkout_pane_message');
+      if ($message && uc_recurring_product_get_recurring_products_in_order($order) != array()) {
+        $contents['recurring_product_message'] = array(
+          '#type' => 'markup',
+          '#theme' => 'uc_recurring_product_message',
+          '#message' => check_markup($message),
+        );
+      }
+      return array('description' => NULL, 'contents' => $contents);
+
+    case 'process':
+      // There is nothing to process as it is just a static message.
+      return TRUE;
+
+    case 'review':
+      // There is potential for an option to also display a message at review.
+      return NULL;
+
+    case 'settings':
+      $form['uc_recurring_product_checkout_pane_message'] = array(
+        '#type' => 'textarea',
+        '#title' => t('Recurring product message'),
+        '#default_value' => variable_get('uc_recurring_product_checkout_pane_message', ''),
+        '#description' => t('Enter the message to be displayed for the recurring product message pane.'),
+      );
+      return $form;
+  }
+}
+
+/**
  * Adds the settings for the recurring module on the feature settings form.
  */
 function uc_recurring_product_settings_form($form, &$form_state) {
