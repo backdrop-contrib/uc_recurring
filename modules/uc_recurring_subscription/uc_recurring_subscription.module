@@ -138,17 +138,12 @@ function uc_recurring_subscription_attribute_delete() {
 /**
  * Load a recurring subscription object.
  */
-function uc_recurring_subscription_load($nidss) {
-  // ERROR: return statement not found in hook_load
-  foreach ($nids as $nid => &$nid) {
-    $subscription = db_query("SELECT * FROM {uc_recurring_subscription} WHERE nid = :nid", array(':nid' => $nid))->fetchObject();
-    if (!empty($subscription)) {
-      $subscription->access = empty($subscription->access) ? array() : unserialize($subscription->access);
-    }
-    foreach ($subscription as $property => &$value) {
-      $nid->$property = $value;
-    }
+function uc_recurring_subscription_load($nid) {
+  $subscription = db_query("SELECT * FROM {uc_recurring_subscription} WHERE nid = :nid", array(':nid' => $nid))->fetchObject();
+  if (!empty($subscription)) {
+    $subscription->access = empty($subscription->access) ? array() : unserialize($subscription->access);
   }
+  return $subscription;
 }
 
 /**
@@ -176,6 +171,18 @@ function uc_recurring_subscription_nodeapi_OLD(&$node, $op, $a3 = NULL, $a4 = NU
 }
 
 /**
+ * Load the recurring product nodes.
+ */
+function uc_recurring_subscription_node_load($nodes, $types) {
+  // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
+  foreach ($nodes as $k => $node) {
+    if ($node->type == variable_get('uc_recurring_subscription_product_class', 'uc_recurring_subscription')) {
+        $nodes[$k]->subscription = uc_recurring_subscription_load($node->nid);
+    }
+  }
+}
+
+/**
  * This loads the reucrring product features as well as the attribute option for
  * this feature.
  */
@@ -183,10 +190,10 @@ function _uc_recurring_subscription_get_product_features($product_id) {
   $attribute = uc_attribute_load(variable_get('uc_recurring_subscription_attribute', ''), $product_id, 'product');
 
   $products = array();
-  $result = db_query("SELECT p.pfid from {uc_recurring_product} p LEFT JOIN {uc_product_features} f ON p.pfid=f.pfid WHERE f.nid = :nid", array(':nid' => $product_id));
+  $result = db_query("SELECT p.pfid from {uc_recurring_product} p LEFT JOIN {uc_product_features} f ON p.pfid=f.pfid WHERE f.nid = :nid", array(':nid' => $product_id))->fetchAll();
+  
   foreach ($result as $p) {
     $product = uc_recurring_product_fee_load($p->pfid);
-
     $option_name = _uc_recurring_subscription_create_attribute_option($product->regular_interval_value, $product->regular_interval_unit);
     $option = _uc_recurring_subscription_option($option_name);
     $product->option = uc_attribute_subject_option_load($option->oid, 'product', $product_id);

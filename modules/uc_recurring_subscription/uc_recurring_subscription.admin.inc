@@ -44,7 +44,7 @@ function uc_recurring_subscription_overview($form, &$form_state) {
     $products = _uc_recurring_subscription_get_product_features($node->nid);
     $intervals = array();
     foreach ($products as $id => $feature) {
-      $interval = theme('uc_price', $feature->fee_amount) . ' - ' . _uc_recurring_subscription_create_attribute_option($feature->regular_interval_value, $feature->regular_interval_unit);
+      $interval = theme('uc_price', array('price' => $feature->fee_amount)) . ' - ' . _uc_recurring_subscription_create_attribute_option($feature->regular_interval_value, $feature->regular_interval_unit);
 
       if ($product->attributes[$attribute->aid]->default_option == $feature->option->oid ) {
         $interval = '<span class="default-option">' . $interval . '</span>';
@@ -55,18 +55,28 @@ function uc_recurring_subscription_overview($form, &$form_state) {
 
       if ($feature->regular_interval_value != $feature->initial_charge_value &&
           $feature->regular_interval_unit != $feature->initial_charge_unit) {
-        $trial = theme('uc_price', $product->sell_price) . ' - ' . $feature->initial_charge_value . ' ' . $feature->initial_charge_unit;
+        $trial = theme('uc_price', array('price' => $product->sell_price)) . ' - ' . $feature->initial_charge_value . ' ' . $feature->initial_charge_unit;
       }
 
       $intervals[] = $interval;
     }
-
-    $form['products'][$node->nid]['title'] = array('#value' => l($product->title, 'node/' . $product->nid));
-    $form['products'][$node->nid]['role'] = array('#value' => implode(', ', $product_roles));
-    $form['products'][$node->nid]['trial'] = array('#value' => empty($trial) ? t('None') : $trial);
-    $form['products'][$node->nid]['interval'] = array('#value' => implode('<br/>', $intervals));
+    $form['products'][$node->nid]['title'] = array('#markup' => l($product->title, 'node/' . $product->nid));
+    $form['products'][$node->nid]['role'] = array('#markup' => implode(', ', $product_roles));
+    $form['products'][$node->nid]['trial'] = array('#markup' => empty($trial) ? t('None') : $trial);
+    $form['products'][$node->nid]['interval'] = array('#markup' => implode('<br/>', $intervals));
     $form['products'][$node->nid]['operations'] = array(
-      '#value' => l('edit', 'admin/store/subscriptions/' . $node->nid . '/edit') . ' | ' . l('delete', 'node/' . $node->nid . '/delete', array('query' => array('destination' => 'admin/store/subscriptions'))),
+      '#theme' => 'links',
+      '#links' => array(
+        array(
+          'title' => 'edit',
+          'href' => 'admin/store/subscriptions/' . $node->nid . '/edit',
+        ),
+        array(
+          'title' => 'delete',
+          'href' => 'node/' . $node->nid . '/delete',
+          'attributes' => array('query' => array('destination' => 'admin/store/subscriptions')),
+        ),
+      )
     );
     $form['products'][$node->nid]['weight'] = array(
       '#type' => 'weight',
@@ -133,12 +143,13 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
     '#required' => TRUE,
     '#default_value' => $node->title,
   );
-  $form['product']['body'] = array(
-    '#type' => 'textarea',
-    '#title' => 'Description',
-    '#default_value' => $node->body,
-  );
-
+  if (isset($node->body)) {
+    $form['product']['body'] = array(
+      '#type' => 'textarea',
+      '#title' => 'Description',
+      '#default_value' => $node->body['und'][0]['value'],
+    );
+  }
   $form['recurring'] = array(
     '#type' => 'fieldset',
     '#title' => 'Step Two: Define Subscription Details',
@@ -152,8 +163,6 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
   );
   // We look at the default option for the trial information.
   $trial_product = new stdClass();
-  $trial_product->initial_charge_value = 0;
-  $trial_product->initial_charge_unit = 0;
   $aid = variable_get('uc_recurring_subscription_attribute', '');
   if (!empty($aid) && isset($node->attributes[$aid])) {
     $default_option = $node->attributes[$aid]->default_option;
@@ -201,11 +210,12 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
   );
 
   $form['recurring']['add'] = array(
-    '#type' => 'button',
+    '#type' => 'submit',
     '#value' => 'Add a payment option',
-    '#ahah' => array(
+    '#submit' => array('uc_recurring_subscription_add_interval'),
+    '#ajax' => array(
       'event' => 'click',
-      'path' => 'subscriptions/ahah/add_interval',
+      'callback' => 'uc_recurring_subscription_add_interval_callback',
       'wrapper' => 'recurring_intervals',
       'method' => 'replace',
       'effect' => 'fade',
@@ -214,12 +224,6 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
       ),
     ),
     '#prefix' => '<div style="clear:both"></div>',
-  );
-
-  $form['recurring']['recurring_intervals'] = array(
-    '#value' => t(' '),
-    '#prefix' => '<div id="recurring_intervals">',
-    '#suffix' => '</div>',
   );
 
   if (isset($form_state['recurring_count'])) {
@@ -231,20 +235,11 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
   $form['recurring']['recurring_intervals']['#theme'] = 'uc_recurring_subscription_item';
   if ($recurring_count > 0) {
     $delta = 0;
-    foreach ($products as $product) {
-      $form['recurring']['recurring_intervals'][$delta] = _uc_recurring_subscription_add_interval_form($delta, $product);
-      $default_options[$delta] = '';
-      if (isset($product) && $product->option->default_option) {
-        $default_option = $delta;
-      }
-      $delta++;
-    }
+      $form['recurring']['recurring_intervals'] = _uc_recurring_subscription_add_interval_form($recurring_count, $products);
   }
-  $form['recurring']['recurring_intervals']['default_payment'] = array(
-    '#type' => 'radios',
-    '#options' => $default_options,
-    '#default_value' => $default_option,
-  );
+  $form['recurring']['recurring_intervals']['#value'] = t(' ');
+  $form['recurring']['recurring_intervals']['#prefix'] = '<div id="recurring_intervals">';
+  $form['recurring']['recurring_intervals']['#suffix'] = '</div>';
 
   $form['access'] = array(
     '#type' => 'fieldset',
@@ -261,7 +256,6 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
     $roles = user_roles(TRUE);
     unset($roles[DRUPAL_AUTHENTICATED_RID]);
   }
-
   $form['access']['role'] = array(
     '#type' => 'fieldset',
     '#title' => 'Roles',
@@ -281,7 +275,7 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
       '#options' => $roles,
       '#multiple' => TRUE,
       '#default_value' => $node->subscription->access['subscribe_grant'],
-      '#attributes' => array('class' => array('role-option')),
+      '#attributes' => array('class' => array('role-option')), 
       '#parents' => array('access', 0, 'subscribe_grant'),
     );
     $form['access']['role']['expire_grant'] = array(
@@ -337,23 +331,8 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
     };
   }
 
-  /*
-   $form['email'] = array(
-   '#type' => 'fieldset',
-   '#title' => 'Step Four: Email/Notifications',
-   '#description' => t('Setup emails to be sent on various events.'),
-   );
-   $form['email']['#theme'] = 'uc_recurring_subscription_email_options';
-   $form['email']['notication_event'] = array(
-   '#type' => 'select',
-   '#title' => t('Add new email on event'),
-   '#options' => array(),
-   );
-   $form['email']['add_notification'] = array('#type' => 'submit', '#value' => t('Add email'));
-   */
-
   if (!empty($node->nid) && $node->type != variable_get('uc_recurring_subscription_product_class', 'uc_recurring_subscription')) {
-    return confirm_form($form, '', request_uri(), t('This product is not a subscription product, saving this form will convert this product to a subscription product, which could result in data being lost if you have specified custom fields.'), t('Save product and convert to a subscription'), t('Cancel'));
+    return confirm_form($form, '', uc_referer_uri(), t('This product is not a subscription product, saving this form will convert this product to a subscription product, which could result in data being lost if you have specified custom fields.'), t('Save product and convert to a subscription'), t('Cancel'));
   }
   else {
     $form['submit'] = array(
@@ -368,12 +347,11 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
       '#value' => t('Delete'),
     );
   }
-
   return $form;
 }
 
 /**
- * This is just a helper function for handling ahah callbacks.
+ * This is just a helper function for handling ahah callbacks.---REMOVE?
  */
 function uc_recurring_subscription_ahah($context) {
   $func = '_uc_recurring_subscription_ahah_' . $context;
@@ -384,88 +362,159 @@ function uc_recurring_subscription_ahah($context) {
   exit();
 }
 
+
+/**
+ * Callback for adding an interval form row
+ */
+function uc_recurring_subscription_add_interval_callback($form, $form_state) {
+  return $form['recurring']['recurring_intervals'];
+}
+
+/**
+ * Submit handler for the "Add a payment option" button.
+ *
+ * Increments the max counter and causes a rebuild.
+ */
+function uc_recurring_subscription_add_interval($form, &$form_state) {
+  if (isset($form_state['recurring_count'])) {
+    $form_state['recurring_count']++;
+  } else {
+    $form_state['recurring_count'] = 1;
+  }
+  watchdog('uc_recurring_subscription_add_interval', $form_state['recurring_count']);
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Callback for removing an interval form row
+ */
+function uc_recurring_subscription_remove_interval_callback($form, $form_state) {
+  return $form['recurring']['recurring_intervals'];
+}
+
+/**
+ * Submit handler for the "Remove" button.
+ *
+ * Increments the max counter and causes a rebuild.
+ */
+function uc_recurring_subscription_remove_interval($form, &$form_state) {
+  if ($form_state['recurring_count'] > 0) {
+    $form_state['recurring_count']--;
+  } 
+  unset($form['recurring']['recurring_intervals'][$form_state['clicked_button']['#attributes']['rel']]);
+  unset($form_state['values']['recurring_intervals'][$form_state['clicked_button']['#attributes']['rel']]);
+  watchdog('uc_recurring_subscription_remove_interval', '<pre>' . print_r($form_state['recurring_count'], 1) . '</pre>');
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Submit handler for the "remove one" button.
+ *
+ * Decrements the max counter and causes a form rebuild.---REMOVE?
+ */
+function ajax_example_add_more_remove_one($form, &$form_state) {
+  if ($form_state['num_names'] > 1) {
+    $form_state['num_names']--;
+  }
+  $form_state['rebuild'] = TRUE;
+}
+
+
 /**
  * Creates the payment interval form elements.
  */
-function _uc_recurring_subscription_add_interval_form($delta, $product = NULL) {
+function _uc_recurring_subscription_add_interval_form($delta, $products = NULL) {
   $form = array(
     '#tree' => TRUE,
+    '#theme' => 'uc_recurring_subscription_item',
   );
-  $form['pfid'] = array(
-    '#type' => 'hidden',
-    '#value' => $product->pfid,
-    '#parents' => array('recurring_intervals', $delta, 'pfid'),
-  );
-  $form['interval_value'] = array(
-    '#type' => 'textfield',
-    '#default_value' => $product->regular_interval_value,
-    '#size' => 2,
-    '#prefix' => '<div class="subscription-interval-value">',
-    '#suffix' => '</div>',
-    '#parents' => array('recurring_intervals', $delta, 'interval_value'),
-  );
-  $form['interval_unit'] = array(
-    '#type' => 'select',
-    '#options' => array(
-      'days' => t('day(s)'),
-      'weeks' => t('week(s)'),
-      'months' => t('month(s)'),
-      'years' => t('year(s)'),
-    ),
-    '#default_value' => $product->regular_interval_unit,
-    '#prefix' => '<div class="subscription-interval-period">',
-    '#suffix' => '</div>',
-    '#parents' => array('recurring_intervals', $delta, 'interval_unit'),
-  );
-  $form['amount'] = array(
-    '#type' => 'textfield',
-    '#default_value' => $product->fee_amount,
-    '#size' => 10,
-    '#prefix' => '<div class="subscription-amount">',
-    '#suffix' => '</div>',
-    '#parents' => array('recurring_intervals', $delta, 'amount'),
-  );
-  $form['number_intervals'] = array(
-    '#type' => 'textfield',
-    '#default_value' => $product->number_intervals < 0 ? '' : $product->number_intervals,
-    '#attributes' => $product->number_intervals < 0 ? array('disabled' => 'disabled') : array(),
-    '#size' => 10,
-    '#prefix' => '<div class="subscription-num-intervals">',
-    '#suffix' => '</div>',
-    '#parents' => array('recurring_intervals', $delta, 'number_intervals'),
-  );
-  $attributes['class'] = 'unlimited-checkbox';
-  if ($product->number_intervals < 0) {
-    $attributes['checked'] = 'checked';
-  }
-  $form['unlimited'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Unlimited'),
-    '#attributes' => $attributes,
-    '#prefix' => '<div class="subscription-unlimited-intervals">',
-    '#suffix' => '</div>',
-    '#parents' => array('recurring_intervals', $delta, 'unlimited'),
-  );
-
-  $form['weight'] = array(
-    '#type' => 'weight',
-    '#delta' => 50,
-    '#default_value' => $product->option->ordering,
-    '#parents' => array('recurring_intervals', $delta, 'weight'),
-  );
-  $form['operations'] = array(
-    '#type' => 'button',
-    '#value' => t('remove'),
-    '#parents' => array('recurring_intervals', $delta, 'operations'),
-    '#ahah' => array(
-      'event' => 'click',
-      'path' => 'subscriptions/ahah/remove_interval/' . $delta,
-      'wrapper' => 'recurring_intervals',
-      'method' => 'replace',
-      'progress' => array(
-        'type' => 'throbber',
+  for ($i=0; $i<$delta; $i++) {
+    $form[$i]['pfid'] = array(
+      '#type' => 'hidden',
+      '#value' => $products[$i]->pfid,
+    );
+    $options[$i] = '';
+    $form[$i]['interval_value'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Interval Length'),
+      '#default_value' => (empty($products[$i]->regular_interval_value))? '':$products[$i]->regular_interval_value,
+      '#size' => 2,
+      '#prefix' => '<div class="subscription-interval-value">',
+      '#suffix' => '</div>',
+    );
+    $form[$i]['interval_unit'] = array(
+      '#type' => 'select',
+      '#title' => t('Interval Unit'),
+      '#options' => array(
+        'days' => t('day(s)'),
+        'weeks' => t('week(s)'),
+        'months' => t('month(s)'),
+        'years' => t('year(s)'),
       ),
-    ),
+      '#default_value' => (empty($products[$i]->regular_interval_unit))? '':$products[$i]->regular_interval_unit,
+      '#prefix' => '<div class="subscription-interval-period">',
+      '#suffix' => '</div>',
+    );
+    $form[$i]['amount'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Amount'),
+      '#default_value' => (empty($products[$i]->fee_amount))? '':$products[$i]->fee_amount,
+      '#size' => 10,
+      '#prefix' => '<div class="subscription-amount">',
+      '#suffix' => '</div>',
+    );
+    $form[$i]['number_intervals'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Number of Intervals'),
+      '#default_value' => empty($products[$i]->number_intervals) || $products[$i]->number_intervals < 0 ? '' : $products[$i]->number_intervals,
+      '#attributes' => empty($products[$i]->number_intervals) || $products[$i]->number_intervals < 0 ? array('disabled' => 'disabled') : array(),
+      '#size' => 10,
+      '#prefix' => '<div class="subscription-num-intervals">',
+      '#suffix' => '</div>',
+    );
+    $attributes['class'] = array('unlimited-checkbox');
+    if (empty($products[$i]->number_intervals) || $products[$i]->number_intervals < 0) {
+      $attributes['checked'] = 'checked';
+    }
+    $form[$i]['unlimited'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Unlimited'),
+      '#attributes' => $attributes,
+      '#prefix' => '<div class="subscription-unlimited-intervals">',
+      '#suffix' => '</div>',
+    );
+
+    $form[$i]['weight'] = array(
+      '#type' => 'weight',
+      '#title' => t('Weight'),
+      '#delta' => 50,
+      '#default_value' => (empty($products[$i]->option->ordering))? '':$products[$i]->option->ordering,
+    );
+    $form[$i]['operations'] = array(
+      '#type' => 'submit',
+      '#value' => t('remove'),
+      '#submit' => array('uc_recurring_subscription_remove_interval'),
+      '#attributes' => array('rel' => $i),
+      '#name' => 'remove_' . $i,
+      '#ajax' => array(
+        'event' => 'click',
+        'callback' => 'uc_recurring_subscription_remove_interval_callback',
+        //'path' => 'subscriptions/ahah/remove_interval/' . $delta,
+        'wrapper' => 'recurring_intervals',
+        'method' => 'replace',
+        'progress' => array(
+          'type' => 'throbber',
+        ),
+      ),
+    );
+    if ($products[$i]->option->default_option) {
+      $default_option = $i;
+    }
+  }
+  $form['default_payment'] = array(
+    '#type' => 'radios',
+    '#options' => $options,
+    '#default_value' => $default_option,
   );
   return $form;
 }
@@ -473,30 +522,12 @@ function _uc_recurring_subscription_add_interval_form($delta, $product = NULL) {
 /**
  * Adds a payment intervals option.
  */
-function _uc_recurring_subscription_ahah_add_interval() {
-  $delta = sizeof($_POST['recurring_intervals']) ? max(array_keys($_POST['recurring_intervals'])) + 1 : 0;
+function _uc_recurring_subscription_ahah_add_interval($form, $form_state) {
+//watchdog('debug', sizeof($form['recurring']['recurring_intervals']['recurring_intervals']) . 'form: <pre>' . print_r($_POST, 1) . '</pre> form state: <pre>' . print_r($form_state, 1) . '</pre>');
+  $delta = sizeof($form['recurring']['recurring_intervals']['recurring_intervals']) ? 2:2;//max(array_keys($_POST[['recurring_intervals'])) + 1 : 0;
   $fields = _uc_recurring_subscription_add_interval_form($delta);
-
-  $form_state = array('submitted' => FALSE);
-  $form_build_id = $_POST['form_build_id'];
-  // Add the new element to the stored form. Without adding the element to the
-  // form, Drupal is not aware of this new elements existence and will not
-  // process it. We retreive the cached form, add the element, and resave.
-  $form = form_get_cache($form_build_id, $form_state);
-  $form['recurring']['recurring_intervals'][$delta] = $fields;
-  form_set_cache($form_build_id, $form, $form_state);
-  $form += array(
-    '#post' => $_POST,
-    '#programmed' => FALSE,
-  );
-  // Rebuild the form.
-  $form = form_builder($_POST['form_id'], $form, $form_state);
-
-  // Render the new output.
-  $new_form = $form['recurring']['recurring_intervals'];
-  $output = drupal_render($new_form);
-
-  drupal_json_output(array('data' => $output, 'status' => true));
+  watchdog('callback debug', 'fields<pre>' . print_r($fields, 1) . '</pre>');
+  return $fields;
 }
 
 /**
@@ -529,7 +560,7 @@ function _uc_recurring_subscription_ahah_remove_interval() {
 function uc_recurring_subscription_product_form_validate(&$form, &$form_state) {
   // Make the changes we want to the form state.
   if ($form_state['values']['recurring_intervals']) {
-    $form_state['recurring_count'] = count($form_state['values']['recurring_intervals']);
+    //$form_state['recurring_count'] = count($form_state['values']['recurring_intervals']);
   }
 
   if ($form_state['values']['op'] == 'submit') {
@@ -567,9 +598,12 @@ function uc_recurring_subscription_product_form_submit(&$form, &$form_state) {
 
       if (!empty($node)) {
         $node->title = $form_state['values']['title'];
-        $node->body = $form_state['values']['body'];
-        $node->list_price = $node->sell_price = $form_state['values']['recurring'][0]['amount'];
-
+        if (isset($node->body)) {
+          $node->body['und'][0]['value'] = $form_state['values']['body'];
+          $node->body['und'][0]['format'] = empty($node->body['und'][0]['format'])? 'filtered_html':$node->body['und'][0]['format'];
+          $node->body['und'][0]['safe'] = _filter_html($node->body['und'][0]['value'], $node->body['und'][0]['format']);
+        }
+        //$node->list_price = $node->sell_price = $form_state['values']['recurring'][0]['amount'];
         // Product attribute.
         $attribute = uc_attribute_load(variable_get('uc_recurring_subscription_attribute', ''), $node->nid, 'product');
 
@@ -596,6 +630,10 @@ function uc_recurring_subscription_product_form_submit(&$form, &$form_state) {
 
         // add/update the recurring features
         $features = array();
+        if (isset($form_state['values']['recurring_intervals']['default_payment'])) {
+          $default_payment = $form_state['values']['recurring_intervals']['default_payment'];
+          unset($form_state['values']['recurring_intervals']['default_payment']);
+        }
         foreach ($form_state['values']['recurring_intervals'] as $index => $value) {
           if (!is_numeric($index)) {
             continue;
@@ -632,9 +670,8 @@ function uc_recurring_subscription_product_form_submit(&$form, &$form_state) {
           $option->ordering = $value['weight'];
           $option->price = $value['amount'];
           $attribute->options[$option->oid] = $option;
-
           // Set the default product options.
-          if ($index == $form_state['values']['default_payment']) {
+          if (isset($default_payment) && $index == $default_payment) {
             $attribute->default_option = $option->oid;
             $node->model = $model;
             $node->sell_price = $product->fee_amount;
@@ -681,10 +718,12 @@ function uc_recurring_subscription_product_form_submit(&$form, &$form_state) {
           if ($trial_value > 0) {
             $feature->initial_charge = $trial_value . ' ' . $trial_unit;
           }
+          $feature->nid = $node->nid;
           uc_recurring_product_feature_save($feature);
         }
         // Save the product/node.
-        node_save($node);
+       $node = node_submit($node);
+       node_save($node);
       }
       break;
   }
@@ -715,7 +754,7 @@ function uc_recurring_subscription_subscriber_list($form, $form_state, $product_
     $row = array(
       'title' => $subscribers->title,
       'count' => $subscribers->num_users,
-      'ops' => isset($subscribers->nid) ? l('subscribers', 'admin/store/subscriptions/subscribers/' . $subscribers->nid) : '',
+      'ops' => isset($subscribers->nid) ? l('view subscribers', 'admin/store/subscriptions/subscribers/' . $subscribers->nid) : '',
     );
     $rows[] = $row;
   }
@@ -728,7 +767,8 @@ function uc_recurring_subscription_subscriber_list($form, $form_state, $product_
     );
   }
   $form['list'] = array(
-    '#value' => theme('table', array(
+    '#type' => 'markup',
+    '#prefix' => theme('table', array(
         'header' => $header,
         'rows' => $rows,
       )) . '<br />',
@@ -736,6 +776,8 @@ function uc_recurring_subscription_subscriber_list($form, $form_state, $product_
 
   if (is_numeric(arg(4))) {
     $product = node_load(arg(4));
+    $id = arg(4);
+    
     $header = array(
       array('data' => t('Order')),
       array(
@@ -754,16 +796,23 @@ function uc_recurring_subscription_subscriber_list($form, $form_state, $product_
       array('data' => t('Status')),
       array('data' => t('Operations'))
     );
-    $sql = "SELECT u.uid, u.name, ru.*, p.nid, p.title as product_title
-            FROM {users} u
-              LEFT JOIN {uc_recurring_users} ru ON ru.uid = u.uid
-              LEFT JOIN {uc_order_products} p ON p.order_product_id = ru.order_product_id
-              LEFT JOIN {uc_recurring_subscription} s ON s.nid = p.nid
-              LEFT JOIN {node} n ON n.nid = p.nid
-            WHERE ru.status <> ". UC_RECURRING_FEE_STATUS_EXPIRED ." AND n.nid = %d";
-
-    $sql .= tablesort_sql($header);
-    $result = pager_query($sql, 20, 0, NULL, $product->nid);
+    
+    $query = db_select('users', 'u');
+    $query = $query->extend('TableSort');
+    $query = $query->orderByHeader($header);
+    $query->join('uc_recurring_users', 'ru', 'ru.uid = u.uid');
+    $query->join('uc_order_products', 'p', 'p.order_product_id = ru.order_product_id');
+    $query->join('uc_recurring_subscription', 's', 's.nid = p.nid');
+    $query->join('node', 'n', 'n.nid = p.nid');
+    $query->condition('ru.status', UC_RECURRING_FEE_STATUS_EXPIRED, '<>');
+    $query->condition('n.nid', $id);
+    $query->fields('u', array('uid', 'name'));
+    $query->fields('ru');
+    $query->fields('p', array('nid'));
+    $query->addField('n', 'title', 'product_title');
+    $query = $query->extend('PagerDefault');
+    $query->limit(30);
+    $result = $query->execute();
 
     foreach ($result as $account) {
       $user_rows[] = array(
@@ -771,18 +820,18 @@ function uc_recurring_subscription_subscriber_list($form, $form_state, $product_
         'user' => l($account->name, 'user/'. $account->uid),
         'start' => format_date($account->created, 'small'),
         'next' => format_date($account->next_charge, 'small'),
-        'price' => uc_price($account->fee_amount, array()),
+        'price' => theme('uc_price', array('price' => $account->fee_amount)),
         'status' => uc_recurring_fee_status_label($account->status),
         'ops' => implode(' | ', uc_recurring_get_fee_ops('user', $account))
       );
-    }
-
+   }
     $form['users'] = array(
-      '#value' => '<h2>' . t('Subscribers to <a href="@product_url">@product</a>', array('@product_url' => url('node/' . $product->nid), '@product' => $product->title)) . '</h2>' .
-        theme('table', array('header' => array(
+      '#type' => 'markup',
+      '#prefix' => '<h2>' . t('Subscribers to <a href="@product_url">@product</a>', array('@product_url' => url('node/' . $product->nid), '@product' => $product->title)) . '</h2>' .
+        theme('table', array(
           'header' => $header,
           'rows' => $user_rows,
-        ))) . theme('pager', array('tags' => array(
+        )) . theme('pager', array('tags' => array(
           'tags' => NULL,
           'element' => 0,
         ))),
@@ -833,7 +882,15 @@ function uc_recurring_subscription_settings_form($form, $form_state) {
 function theme_uc_recurring_subscription_item($variables) {
 //   $variables = $variables['form'];
   $form = $variables['form'];
-  $header = array(t('Default'), t('Subscription Interval'), t('Amount'), t('Billing Intervals'), t('Order'), '');
+  // Set up table header.
+  $header = array(
+    array('data' => t('Default'), 'class' => array('subscription-default')),
+    array('data' => t('Subscription Interval'), 'class' => array('subscription-interval')),
+    array('data' => t('Amount'), 'class' => array('subscription-amount')),
+    array('data' => t('Billing Intervals'), 'class' => array('subscription-billing-interval')),
+    array('data' => t('Order'), 'class' => array('subscription-order')),
+    array('data' => t(''), 'class' => array('subscription-something')),
+  );
   drupal_add_tabledrag('recurring-subscription', 'order', 'sibling', 'recurring-weight');
 
   $rows = array();
@@ -844,36 +901,35 @@ function theme_uc_recurring_subscription_item($variables) {
     // Add class to group weight fields for drag and drop.
     $form[$key]['weight']['#attributes']['class'] = 'recurring-weight';
 
-    $row = array();
-    $row[] = drupal_render($form['default_payment'][$key]);
-    $row[] = drupal_render($form[$key]['interval_value']) .
-             drupal_render($form[$key]['interval_unit']);
-    $row[] = drupal_render($form[$key]['amount']);
-    $row[] = drupal_render($form[$key]['number_intervals']) .
-             drupal_render($form[$key]['unlimited']);
-    $row[] = drupal_render($form[$key]['weight']);
-    $row[] = drupal_render_children($form[$key]['operations']) . drupal_render_children($form[$key]['pfid']);
     $rows[] = array(
-      'data' => $row,
-      'class' => 'draggable tabledrag-leaf',
+      'data' => array(
+        drupal_render($form['default_payment'][$key]),
+        drupal_render($form[$key]['interval_value']) . drupal_render($form[$key]['interval_unit']),
+        drupal_render($form[$key]['amount']),
+        drupal_render($form[$key]['number_intervals']) . drupal_render($form[$key]['unlimited']),
+        drupal_render($form[$key]['weight']),
+        drupal_render($form[$key]['operations']) . drupal_render($form[$key]['pfid']),
+      ),
+      'class' => array('draggable tabledrag-leaf')
     );
   }
+    watchdog('theme_debug' , '<pre>' . print_r($variables, 1) . '</pre>');
   $output = theme('table', array(
       'header' => $header,
       'rows' => $rows,
       'attributes' => array('id' => 'recurring-subscription'),
     ));
-  //$output .= drupal_render($form);
-  return $output;
+  return $output . drupal_render_children($form);
 }
+
+
 
 /**
  * Add table drag effect to product commission table.
  */
 function theme_uc_recurring_subscription_products($variables) {
-//   $variables = $variables['form'];
   $form = $variables['form'];
-  $header = array(t('Name'), t('Assigned role(s)'), t('Trial'), t('Payment Options'), '');
+  $header = array(t('Name'), t('Assigned role(s)'), t('Trial'), t('Payment Options'), t('Order'), t(''));
   drupal_add_tabledrag('recurring-subscription-products', 'order', 'sibling', 'product-weight');
 
   foreach (element_children($form) as $key) {
@@ -886,7 +942,7 @@ function theme_uc_recurring_subscription_products($variables) {
     $row[] = drupal_render($form[$key]['trial']);
     $row[] = drupal_render($form[$key]['interval']);
     $row[] = drupal_render($form[$key]['weight']);
-    $row[] = drupal_render_children($form[$key]['operations']);
+    $row[] = drupal_render($form[$key]['operations']);
     $rows[] = array(
       'data' => $row,
       'class' => array('draggable'),
@@ -897,7 +953,7 @@ function theme_uc_recurring_subscription_products($variables) {
     $rows[] = array(
       array(
         'data' => l('Add new subscription', 'admin/store/subscriptions/create'),
-        'colspan' => 5,
+        'colspan' => 6,
       ),
     );
   }
@@ -916,19 +972,20 @@ function theme_uc_recurring_subscription_products($variables) {
  *
  */
 function theme_uc_recurring_subscription_role_items($variables) {
+  //$variables = $variables['form'];
   $form = $variables['form'];
   $header = array(t('Granted on purchase'), t('Granted on expiration'), t('Revoked on expiration'));
 
   $row = array();
   $row[] = drupal_render($form['subscribe_grant']);
   $row[] = drupal_render($form['expire_grant']);
-  $row[] = drupal_render_children($form['expire_revoke']);
+  $row[] = drupal_render($form['expire_revoke']);
   $rows[] = $row;
 
-  $output = theme('table', array('header' => array(
+  $output = theme('table', array(
       'header' => $header,
       'rows' => $rows,
-    )));
+    ));
   $output .= drupal_render_children($form);
   return $output;
 }
