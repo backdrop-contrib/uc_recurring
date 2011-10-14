@@ -988,7 +988,7 @@ function theme_uc_recurring_user_table($variables) {
     $rows[] = array(
       'data' => array(
         l($fee->order_id, 'user/' . $uid . '/order/' . $fee->order_id),
-        theme('uc_price', $fee->fee_amount),
+        theme('uc_price', array('price' => $fee->fee_amount)),
         array(
           'data' => check_plain($fee->regular_interval),
           'nowrap' => 'nowrap',
@@ -1074,7 +1074,7 @@ function theme_uc_recurring_admin_table($variables) {
       l($fee->name, 'user/' . $fee->uid),
       format_date($fee->next_charge, 'short'),
       $fee->fee_amount != '0.00' ? $fee->fee_amount : t('Same as product price'),
-      //$fee->fee_amount != '0.00' ? theme('uc_price', $fee->fee_amount) : t('Same as product price'),
+      //$fee->fee_amount != '0.00' ? theme('uc_price', array('price' => $fee->fee_amount)) : t('Same as product price'),
       array(
         'data' => check_plain($fee->regular_interval),
         'nowrap' => 'nowrap',

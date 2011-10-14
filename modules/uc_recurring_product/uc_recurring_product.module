@@ -194,14 +194,9 @@ function uc_recurring_product_feature_form_submit($form, &$form_state) {
  *
  */
 function uc_recurring_product_feature_save(&$product) {
-  $context = array(
-    'revision' => 'formatted-original',
-    'location' => 'recurring-feature-submit',
-  );
-
   $args = array(
     '@product' => empty($product->model) ? t('this product') : t('@model of this product', array('@model' => $product->model)),
-    '@amount' => empty($product->fee_amount) ? t('the same amount as the product selling price') : theme('uc_price', $product->fee_amount, $context),
+    '@amount' => empty($product->fee_amount) ? t('the same amount as the product selling price') : theme('uc_price', array('price' => $product->fee_amount)),
     '@initial' => $product->initial_charge,
     '@regular' => $product->regular_interval,
     '@intervals' => t('@num times', array('@num' => $product->number_intervals < 0 ? t('unlimited') : $product->number_intervals - 1)),

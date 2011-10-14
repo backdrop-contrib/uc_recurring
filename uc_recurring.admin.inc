@@ -134,7 +134,7 @@ function uc_recurring_admin_charge_form($form, $form_state, $rfid, $fee_handler)
       '#value' => $rfid,
     );
     $form['message'] = array(
-      '#markup' => '<div>' . t('Are you sure you want to charge the customer !amount at this time?', array('!amount' => theme('uc_price', $fee->fee_amount))) . '</div>',
+      '#markup' => '<div>' . t('Are you sure you want to charge the customer !amount at this time?', array('!amount' => theme('uc_price', array('price' => $fee->fee_amount)))) . '</div>',
     );
     $form['submit'] = array(
       '#type' => 'submit',
@@ -367,7 +367,7 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
     'revision' => 'themed-original',
     'location' => 'recurring-admin',
   );
-  drupal_set_message(t('The changes to <a href="@user-link">@user</a> recurring fee @rfid (@title) has been saved. The next charge of !fee_amount will be on @date.', array('@user' => $member->name, '@user-link' => url('user/' . $member->uid), '@rfid' => $rfid, '@title' => $fee_title, '!fee_amount' => theme('uc_price', $fee_amount), '@date' => format_date($next_charge))));
+  drupal_set_message(t('The changes to <a href="@user-link">@user</a> recurring fee @rfid (@title) has been saved. The next charge of !fee_amount will be on @date.', array('@user' => $member->name, '@user-link' => url('user/' . $member->uid), '@rfid' => $rfid, '@title' => $fee_title, '!fee_amount' => theme('uc_price',  array('price' => $fee_amount)), '@date' => format_date($next_charge))));
 
   // Fee was already cancelled and now has been resumed, add a comment to the order.
   if ($fee->remaining_intervals == 0 && $form_state['values']['number_intervals'] != 0) {
