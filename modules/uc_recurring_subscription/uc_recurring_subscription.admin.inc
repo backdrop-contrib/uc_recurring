@@ -147,7 +147,7 @@ function uc_recurring_subscription_product_form($form, $form_state, $product_id 
     $form['product']['body'] = array(
       '#type' => 'textarea',
       '#title' => 'Description',
-      '#default_value' => $node->body['und'][0]['value'],
+//      '#default_value' => $node->body['und'][0]['value'],
     );
   }
   $form['recurring'] = array(
