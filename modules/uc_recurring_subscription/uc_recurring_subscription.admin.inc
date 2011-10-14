@@ -403,7 +403,6 @@ function uc_recurring_subscription_remove_interval($form, &$form_state) {
   } 
   unset($form['recurring']['recurring_intervals'][$form_state['clicked_button']['#attributes']['rel']]);
   unset($form_state['values']['recurring_intervals'][$form_state['clicked_button']['#attributes']['rel']]);
-  watchdog('uc_recurring_subscription_remove_interval', '<pre>' . print_r($form_state['recurring_count'], 1) . '</pre>');
   $form_state['rebuild'] = TRUE;
 }
 
@@ -523,10 +522,8 @@ function _uc_recurring_subscription_add_interval_form($delta, $products = NULL) 
  * Adds a payment intervals option.
  */
 function _uc_recurring_subscription_ahah_add_interval($form, $form_state) {
-//watchdog('debug', sizeof($form['recurring']['recurring_intervals']['recurring_intervals']) . 'form: <pre>' . print_r($_POST, 1) . '</pre> form state: <pre>' . print_r($form_state, 1) . '</pre>');
   $delta = sizeof($form['recurring']['recurring_intervals']['recurring_intervals']) ? 2:2;//max(array_keys($_POST[['recurring_intervals'])) + 1 : 0;
   $fields = _uc_recurring_subscription_add_interval_form($delta);
-  watchdog('callback debug', 'fields<pre>' . print_r($fields, 1) . '</pre>');
   return $fields;
 }
 
@@ -913,7 +910,6 @@ function theme_uc_recurring_subscription_item($variables) {
       'class' => array('draggable tabledrag-leaf')
     );
   }
-    watchdog('theme_debug' , '<pre>' . print_r($variables, 1) . '</pre>');
   $output = theme('table', array(
       'header' => $header,
       'rows' => $rows,
