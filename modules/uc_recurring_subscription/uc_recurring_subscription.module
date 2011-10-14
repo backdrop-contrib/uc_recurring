@@ -158,27 +158,16 @@ function uc_recurring_subscription_delete($nid) {
 }
 
 /**
- * For recurring subscriptions we should.
- */
-function uc_recurring_subscription_nodeapi_OLD(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
-  if ($node->type == variable_get('uc_recurring_subscription_product_class', 'uc_recurring_subscription')) {
-    switch ($op) {
-      case 'load':
-        $node->subscription = uc_recurring_subscription_load($node->nid);
-    }
-  }
-}
-
-/**
- * Load the recurring product nodes.
+ * Implements hook_node_load().
  */
 function uc_recurring_subscription_node_load($nodes, $types) {
-  // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
-  foreach ($nodes as $k => $node) {
-    if ($node->type == variable_get('uc_recurring_subscription_product_class', 'uc_recurring_subscription')) {
-        $nodes[$k]->subscription = uc_recurring_subscription_load($node->nid);
-    }
+  if (!in_array(variable_get('uc_recurring_subscription_product_class', 'uc_recurring_subscription'), $types)) {
+    return;
+  }
+  $result = db_query('SELECT * FROM {uc_recurring_subscription} WHERE nid IN(:nids)', array(':nids' => array_keys($nodes)));
+  foreach ($result as $record) {
+    $nodes[$record->nid]->subscription = $record;
+    $nodes[$record->nid]->subscription->access = empty($record->access) ? array() : unserialize($record->access);
   }
 }
 
