@@ -466,6 +466,9 @@ function uc_recurring_product_process_order($order, $data = array()) {
   global $user;
   $return = array();
 
+  // hack not all the id's are in the order object
+  $order = uc_order_load($order->order_id);
+
   // Get all the products that should have a recurring fee created for them.
   if (($products = uc_recurring_product_get_recurring_products_in_order($order))) {
     // Check we have an handler to deal with the recurring payment.
