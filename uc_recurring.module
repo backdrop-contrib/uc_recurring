@@ -361,7 +361,20 @@ function uc_recurring_uc_message() {
  */
 function uc_recurring_renew($fee) {
   global $user;
-  $order = uc_recurring_create_renewal_order($fee);
+  if ($fee->attempts==0) {
+    // create a new order for the renewal
+    $order = uc_recurring_create_renewal_order($fee);
+  } else {
+    // renewal order already created on first charge attempt
+    $order = FALSE;
+    if (isset($fee->data['retry_order_id']) && is_numeric($fee->data['retry_order_id'])) {
+      $order = uc_order_load($fee->data['retry_order_id']);
+    }
+    if ($order==FALSE) {
+      // could not find the last renewal order so create a new one
+      $order = uc_recurring_create_renewal_order($fee);
+    }
+  }
 
   if (uc_recurring_charge_profile($fee, $order) !== FALSE) {
     $order = uc_order_load($order->order_id);
@@ -373,6 +386,11 @@ function uc_recurring_renew($fee) {
     $recurring_order->original_order_id = $fee->order_id;
     $recurring_order->renewal_order_id = $order->order_id;
     drupal_write_record('uc_recurring_orders', $recurring_order);
+   
+    if (isset($fee->data['retry_order_id'])) {
+      unset($fee->data['retry_order_id']);
+    }
+
     // Save the fee object.
     uc_recurring_fee_user_save($fee);
 
@@ -402,6 +420,13 @@ function uc_recurring_renew($fee) {
     }
     else {
       watchdog('uc_recurring', 'Failed to capture recurring fee of @amount for order @order_id.', array('@amount' => $fee->fee_amount, '@order_id' => $fee->order_id), WATCHDOG_ERROR, l(t('order !order_id', array('!order_id' => $fee->order_id)), 'admin/store/orders/'. $fee->order_id));
+    }
+ 
+    // check if there will be a retry
+    $extension = uc_recurring_get_extension($fee->pfid, $fee->attempts);
+    if ($extension) {
+      $fee->data['retry_order_id'] = $order->order_id;
+      uc_recurring_fee_user_save($fee);
     }
 
     module_invoke_all('recurring_renewal_failed', $order, $fee);
