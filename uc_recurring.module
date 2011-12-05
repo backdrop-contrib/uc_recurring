@@ -987,7 +987,7 @@ function theme_uc_recurring_user_table($variables) {
     // Add the row to the table for display.
     $rows[] = array(
       'data' => array(
-        l($fee->order_id, 'user/' . $uid . '/order/' . $fee->order_id),
+        l($fee->order_id, 'user/' . $uid . '/orders/' . $fee->order_id),
         theme('uc_price', array('price' => $fee->fee_amount)),
         array(
           'data' => check_plain($fee->regular_interval),
