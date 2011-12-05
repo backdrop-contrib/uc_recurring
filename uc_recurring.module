@@ -456,6 +456,7 @@ function uc_recurring_create_renewal_order($fee) {
 
   $new_order = $order;
   $new_order->order_id = $new_id;
+  $new_order->created = time();
   $new_order->order_status = 'processing';
   // @todo we need a better way of tracking the relationship between orders.
   $new_order->data['recurring_fee'] = TRUE;
