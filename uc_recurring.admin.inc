@@ -350,6 +350,11 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
     $next_charge = mktime($hour, $min, $sec, $month, $day, $year);
   }
 
+  $status = $fee->status;
+  if ($fee->status != UC_RECURRING_FEE_STATUS_ACTIVE && $number_intervals != 0) { 
+    $status = UC_RECURRING_FEE_STATUS_ACTIVE;
+  }
+
   // todo - replace with a drupal_write_record()
   db_update('uc_recurring_users')
     ->fields(array(
@@ -358,7 +363,7 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
       'regular_interval' => $interval,
       'remaining_intervals' => $number_intervals,
       'next_charge' => $next_charge,
-      'status' => $fee_status,
+      'status' => $status,
     ))
     ->condition('rfid', $rfid)
     ->execute();
@@ -370,11 +375,11 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
   drupal_set_message(t('The changes to <a href="@user-link">@user</a> recurring fee @rfid (@title) has been saved. The next charge of !fee_amount will be on @date.', array('@user' => $member->name, '@user-link' => url('user/' . $member->uid), '@rfid' => $rfid, '@title' => $fee_title, '!fee_amount' => theme('uc_price',  array('price' => $fee_amount)), '@date' => format_date($next_charge))));
 
   // Fee was already cancelled and now has been resumed, add a comment to the order.
-  if ($fee->remaining_intervals == 0 && $form_state['values']['number_intervals'] != 0) {
-    uc_order_comment_save($fee->order_id, $user->uid, t('<a href="@user-link">@user</a> resumed the recurring fee <a href="@fee-link">@fee</a>.', array('@user-link' => url('user/' . $user->uid), '@user' => $user->name, '@fee-link' => url('admin/store/orders/recurring/view/fee/' . $rfid), '@fee' => $rfid)));
+  if ($fee->status != $status && $status == UC_RECURRING_FEE_STATUS_ACTIVE) {
+    uc_order_comment_save($fee->order_id, $user->uid, t('<a href="@user-link">@user</a> resumed the recurring fee <a href="@fee-link">@fee</a>.', array('@user-link' => url('user/'. $user->uid), '@user' => $user->name, '@fee-link' => url('admin/store/orders/recurring/view/fee/'. $rfid), '@fee'=> $rfid)));
   }
   // If the number of intervals was set to zero then also call cancel.
-  if ($fee->remaining_intervals != 0 && $number_intervals == 0) {
+  if ($fee->status == UC_RECURRING_FEE_STATUS_ACTIVE && $number_intervals == 0) {
     uc_recurring_fee_cancel($rfid, $fee);
   }
 }
