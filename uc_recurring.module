@@ -397,6 +397,7 @@ function uc_recurring_renew($fee) {
     module_invoke_all('recurring_renewal_completed', $order, $fee);
     // @todo - replace with rules
     //ca_pull_trigger('uc_recurring_renewal_complete', $order, $fee);
+    rules_invoke_event('uc_recurring_renewal_complete', $order, $fee);
 
     // Return the new order ID.
     return $order->order_id;
@@ -432,6 +433,7 @@ function uc_recurring_renew($fee) {
     module_invoke_all('recurring_renewal_failed', $order, $fee);
     // @todo - replace with rules
     //ca_pull_trigger('uc_recurring_renewal_failed', $order, $fee);
+    rules_invoke_event('uc_recurring_renewal_failed', $order, $fee);
 
     uc_order_comment_save($fee->order_id, $user->uid, t('New recurring fee failed on order <a href="@store-orders">@order_id</a>.', array('@store-orders' => url('admin/store/orders/' . $order->order_id), '@order_id' => $order->order_id)));
   }
@@ -518,6 +520,7 @@ function uc_recurring_expire($fee) {
 
   // @todo - replace with rules
   //ca_pull_trigger('uc_recurring_renewal_expired', $order, $fee);
+  rules_invoke_event('uc_recurring_renewal_expired', $order, $fee);
 }
 
 /**
@@ -823,6 +826,7 @@ function uc_recurring_fee_cancel($rfid, $fee = NULL) {
   $order = uc_order_load($fee->order_id);
   // @todo - replace with rules
   //ca_pull_trigger('uc_recurring_cancel', $order, $fee);
+  rules_invoke_event('uc_recurring_cancel', $order, $fee);
 }
 
 /**
