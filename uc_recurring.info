@@ -16,3 +16,5 @@ files[] = includes/uc_recurring.test_gateway.inc
 files[] = includes/uc_recurring.uc_authorizenet.inc
 files[] = includes/uc_recurring.uc_credit.inc
 files[] = includes/uc_recurring.uc_payment_pack.inc
+files[] = views/uc_recurring_status_views_handler_field.inc
+files[] = views/uc_recurring_status_views_handler_filter.inc
