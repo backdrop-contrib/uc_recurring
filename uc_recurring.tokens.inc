@@ -81,15 +81,11 @@ function uc_recurring_tokens($type, $tokens, $data = array(), $options = array()
     foreach ($tokens as $name => $original) {
       switch ($name) {
         case 'recurring-fee-id':
-          if (isset($order->data['new_user']['name'])) {
-            $replacements[$original] = $fee->rfid;
-          }
+          $replacements[$original] = $fee->rfid;
           break;
 
         case 'next-charge':
-          if (isset($order->data['new_user']['pass'])) {
-            $replacements[$original] = $format_date($fee->next_charge);
-          }
+          $replacements[$original] = $format_date($fee->next_charge);
           break;
 
         case 'fee-amount':
