@@ -48,7 +48,7 @@ function uc_recurring_test_gateway_process($order, &$fee) {
   );
 
   if ($key = uc_credit_encryption_key()) {
-    $crypt = new uc_encryption_class;
+    $crypt = new UbercartEncryption();
     $data['payment_details']['cc_number'] = $crypt->encrypt($key, $data['payment_details']['cc_number'], 32);
     if (variable_get('uc_credit_debug', FALSE)) {
       $data['payment_details']['cc_cvv'] = $crypt->encrypt($key, $data['payment_details']['cc_cvv'], 32);
