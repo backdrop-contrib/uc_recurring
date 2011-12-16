@@ -227,14 +227,18 @@ function uc_recurring_recurring_info() {
  *
  * On the renewal time of a recurring fee see if the payment method would
  * like to perform any addition actions.
- *
- * TODO: limit the number of recurring orders to process on each cron job (maybe
- * this can be done based on time, in case a remote server is slow a responding
- * to requests).
+ * 
+ * LOCK AGAINST DUPLICATE CALLS OF THIS FUNCTION:
+ * ----------------------------------------------
+ * A lock is set for a default 30sec - this can be overridden by altering the
+ * uc_recurring_cron_timeout variable
  */
 function uc_recurring_cron() {
-  $start = time();
-  lock_acquire('uc_recurring_cron', 30);
+  if (!lock_acquire('uc_recurring_cron', variable_get('uc_recurring_cron_timeout', 30))) {
+    // Don't run the recurring payments while another process has this lock.
+    return FALSE;
+  }
+
 
   if (variable_get('uc_recurring_trigger_renewals', TRUE)) {
     $fees = uc_recurring_get_fees_for_renew();
@@ -248,7 +252,7 @@ function uc_recurring_cron() {
           // payment attempted but failed
           $fail++;
         }
-        if ($start - time() > 1800) { // 30seconds
+        if (lock_may_be_available('uc_recurring_cron')) { // exit if the lock has expired
           break;
         }
       }
