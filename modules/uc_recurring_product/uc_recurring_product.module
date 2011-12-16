@@ -36,7 +36,7 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
   else {
     $product = new StdClass();
   }
-  $options = uc_product_get_models($node);
+  $options = uc_product_get_models($node->nid);
   $form['nid'] = array(
     '#type' => 'hidden',
     '#value' => $node->nid,
