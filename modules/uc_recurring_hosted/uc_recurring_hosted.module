@@ -1376,13 +1376,6 @@ function uc_recurring_hosted_paypal_wpp_profile_creation_form_submit($form, &$fo
   ->condition('rfid', $fee->rfid)
   ->execute();
 
-    //check if periods to charge
-    if ($periods_past_due > 0) {
-      $amount = $fee->fee_amount * $periods_past_due;
-      $data['txn_type'] = UC_CREDIT_AUTH_CAPTURE;
-      uc_recurring_fee_user_save($fee);
-    }
-
     $cc_data = array(
       'cc_number' => substr($order->payment_details['cc_number'], -4),
       'cc_exp_month' => $order->payment_details['cc_exp_month'],
