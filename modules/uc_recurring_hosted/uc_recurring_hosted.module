@@ -451,7 +451,7 @@ function uc_recurring_hosted_uc_auth_arb_payment($post) {
  * @return
  *   TRUE if recurring fee was cancelled.
  */
-function uc_recurring_hosted_authorizenet_arb_cancel($order, &$fee) {
+function uc_recurring_hosted_authorizenet_arb_cancel($order, $fee) {
   $server = variable_get('uc_authnet_arb_mode', 'disabled');
 
   $order = uc_order_load($order->order_id);
@@ -478,13 +478,13 @@ function uc_recurring_hosted_authorizenet_arb_cancel($order, &$fee) {
   $data = _uc_authorizenet_arb_parse_response($response);
 
   if ($data['resultCode'] == 'Error') {
-    if (!empty($order_id)) {
-      uc_order_comment_save($order_id, 0, t('Authorize.Net: Subscription @subscription_id cancellation failed.<br />@error - @text', array('@subscription_id' => $subscription_id, '@error' => $data['code'], '@text' => $data['text'])), 'admin');
+    if (!empty($order->$order_id)) {
+      uc_order_comment_save($order->order_id, 0, t('Authorize.Net: Subscription @subscription_id cancellation failed.@error - @text', array('@subscription_id' => $subscription_id, '@error' => $data['code'], '@text' => $data['text'])), 'admin');
     }
     return FALSE;
   }
 
-  uc_order_comment_save($order_id, 0, t('Authorize.Net: Subscription @subscription_id cancelled.', array('@subscription_id' => $subscription_id)), 'admin');
+  uc_order_comment_save($order->order_id, 0, t('Authorize.Net: Subscription @subscription_id cancelled.', array('@subscription_id' => $subscription_id)), 'admin');
 
   return TRUE;
 }
