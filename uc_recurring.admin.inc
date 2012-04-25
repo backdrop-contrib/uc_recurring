@@ -517,11 +517,131 @@ function uc_recurring_order_information($order_id) {
     $condition = db_and();
     $condition->condition('o.order_id', $renewal_orders, 'IN');
 
-    $output .= drupal_render(uc_order_admin($condition, TRUE));
+    $output .= drupal_render(uc_recurring_order_admin($condition, TRUE));
   }
   else {
     $output = t('No recurring fees associated with this order');
   }
 
   return $output;
+}
+
+
+/**
+ * Latest version of ubercart 3.x doesn't have this function anymore.
+ * (uses views instead to create the admin interface)
+ * However uc_recurring currently still looks for this function (see http://drupal.org/node/1283352)
+ * 
+ * As a temporary work-around, this function was copied 
+ * from ubercart-7.x-3.0-beta4/uc_order/uc_order.admin.inc
+ * 
+ */
+
+/**
+ * Displays the main order admin screen, an overview of all received orders.
+ */
+function uc_recurring_order_admin($condition = NULL, $search = FALSE) {
+  $header = array(
+    array('data' => t('Actions')),
+    array('data' => t('Order ID'), 'field' => 'o.order_id', 'sort' => 'desc'),
+    array('data' => t('Customer')),
+    array('data' => t('Total'), 'align' => 'center', 'field' => 'o.order_total'),
+    array('data' => t('Purchase date'), 'align' => 'center', 'field' => 'o.created'),
+    array('data' => t('Status'), 'field' => 'os.title'),
+  );
+
+  $address = variable_get('uc_customer_list_address', 'billing') == 'shipping' ? 'delivery' : 'billing';
+
+  $query = db_select('uc_orders', 'o')
+    ->fields('o', array(
+      'order_id',
+      'uid',
+      'order_total',
+      'created',
+      $address . '_first_name',
+      $address . '_last_name',
+      'order_status',
+    ));
+
+  $query->leftJoin('uc_order_statuses', 'os', 'o.order_status = os.order_status_id');
+  $query->fields('os', array('title'));
+
+  if (!is_null($condition) && $condition->count()) {
+    $query->condition($condition);
+  }
+
+  if (!isset($_GET['status']) || $_GET['status'] != 'all') {
+    if (!empty($_GET['status']) && is_string($_GET['status'])) {
+      $query->condition('o.order_status', $_GET['status']);
+    }
+    else {
+      $query->condition('o.order_status', uc_order_status_list('general', TRUE), 'IN');
+    }
+  }
+
+  $query = $query->extend('PagerDefault')->extend('TableSort')
+    ->orderByHeader($header)
+    ->limit(variable_get('uc_order_number_displayed', 30));
+
+  $rows = array();
+
+  $result = $query->execute();
+  foreach ($result as $order) {
+    $order_name = trim($order->{$address . '_first_name'} . ' ' . $order->{$address . '_last_name'});
+    if (!$order_name) {
+      if ($order->uid && $account = db_query("SELECT name FROM {users} WHERE uid = :uid", array(':uid' => $order->uid))->fetchField()) {
+        $order_name = t('User: !name', array('!name' => $account));
+      }
+      else {
+        $order_name = t('User: none');
+      }
+    }
+
+    $rows[] = array(
+      'data' => array(
+        array('data' => uc_order_actions($order, TRUE), 'nowrap' => 'nowrap'),
+        array('data' => $order->order_id),
+        array('data' => check_plain($order_name), 'nowrap' => 'nowrap'),
+        array('data' => array('#theme' => 'uc_price', '#price' => $order->order_total), 'align' => 'right'),
+        array('data' => format_date($order->created, 'uc_store'), 'align' => 'center'),
+        array('data' => $order->title),
+      ),
+      'id' => 'order-' . $order->order_id,
+    );
+  }
+
+  drupal_add_js(array(
+    'ucURL' => array(
+      'adminOrders' => url('admin/store/orders/'),
+    ),
+  ), 'setting');
+  drupal_add_js(drupal_get_path('module', 'uc_order') . '/uc_order.js');
+
+  $build = array();
+
+  if ($search === FALSE) {
+    $build['order_overview_select_form'] = drupal_get_form('uc_order_select_form') + array(
+      '#prefix' => '<div class="order-overview-form">',
+      '#suffix' => '</div>',
+    );
+    $build['order_overview_admin_sort_form'] = drupal_get_form('uc_order_admin_sort_form') + array(
+      '#prefix' => '<div class="order-overview-form">',
+      '#suffix' => '</div>',
+    );
+  }
+
+  $build['orders'] = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+    '#attributes' => array('class' => array('uc-orders-table')),
+    '#weight' => 1,
+  );
+  $build['pager'] = array(
+    '#theme' => 'pager',
+    '#element' => 0,
+    '#weight' => 5,
+  );
+
+  return $build;
 }
