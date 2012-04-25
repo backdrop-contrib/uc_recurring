@@ -35,6 +35,7 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
   }
 
   if (_uc_recurring_hosted_paypal_ipn_validate($ipn)) {
+    watchdog('uc_recurring_hosted', 'Paypal IPN transaction type %txn_type for order id @order_id', array('%txn_type' => $ipn->txn_type, '@order_id' => $order->order_id));
     switch ($ipn->txn_type) {
       case 'subscr_signup':
       case 'recurring_payment_profile_created':
@@ -139,14 +140,15 @@ function _uc_recurring_hosted_paypal_ipn_payment($ipn) {
 
   switch ($ipn->payment_status) {
     case 'Canceled_Reversal':
-      uc_order_comment_save($ipn->order_id, 0, t('PayPal has cancelled the reversal and returned !amount !currency to your account.', array('!amount' => uc_price($ipn->mc_gross, $context, $options), '!currency' => $ipn->mc_currency)), 'admin');
+      uc_order_comment_save($ipn->order_id, 0, t('PayPal has cancelled the reversal and returned !amount !currency to your account.', array('!amount' => uc_currency_format($ipn->mc_gross, $options['sign']), '!currency' => $ipn->mc_currency)), 'admin');
       break;
 
     case 'Completed':
       $comment = t('PayPal transaction ID: @txn_id', array('@txn_id' => $ipn->txn_id));
+      // save the transaction in the order log
+      uc_order_comment_save($ipn->order_id, 0, t('Payment of @amount @currency submitted through PayPal.', array('@amount' => uc_currency_format($ipn->mc_gross, $options['sign']), '@currency' => $ipn->mc_currency)), 'order', 'payment_received');
+      uc_order_comment_save($ipn->order_id, 0, t('PayPal IPN reported a payment of @amount @currency.', array('@amount' => uc_currency_format($ipn->mc_gross, $options['sign']), '@currency' => $ipn->mc_currency)));
       uc_payment_enter($ipn->order_id, 'paypal_wps', $ipn->mc_gross, $user->uid, NULL, $comment);
-      uc_order_comment_save($ipn->order_id, 0, t('Payment of @amount @currency submitted through PayPal.', array('@amount' => uc_price($ipn->mc_gross, $context, $options), '@currency' => $ipn->mc_currency)), 'order', 'payment_received');
-      uc_order_comment_save($ipn->order_id, 0, t('PayPal IPN reported a payment of @amount @currency.', array('@amount' => uc_price($ipn->mc_gross, $context, $options), '@currency' => $ipn->mc_currency)));
       break;
 
     case 'Denied':
@@ -183,6 +185,11 @@ function _uc_recurring_hosted_paypal_ipn_payment($ipn) {
 
     case 'Voided':
       uc_order_comment_save($ipn->order_id, 0, t('The authorization has been voided.'), 'admin');
+      break;
+      
+    default:
+      watchdog('uc_recurring_hosted', 'Payment status @status not recognized.  Nothing to do. !debug',
+        array('@status' => $ipn->payment_status, '!debug' => variable_get('uc_paypal_wps_debug_ipn', FALSE) ? '<pre>' . check_plain(print_r($_POST, TRUE)) . '</pre>' : ''));
       break;
   }
 }
@@ -248,11 +255,11 @@ function _uc_recurring_hosted_paypal_ipn_validate($ipn) {
   else {
     $host = variable_get('uc_paypal_wps_server', 'https://www.sandbox.paypal.com/cgi-bin/webscr');
   }
-  $response = drupal_http_request($host, array('headers' => array('headers' => array(
+  $response = drupal_http_request($host, array(
         'headers' => array(),
         'method' => 'POST',
         'data' => $req,
-      ))));
+      ));
 
   // @todo: Change this to property_exists when we have a PHP requirement >= 5.1.
   if (array_key_exists('error', $response)) {
@@ -275,17 +282,14 @@ function _uc_recurring_hosted_paypal_ipn_validate($ipn) {
  * Check if we have already recieved a IPN with the same details.
  */
 function _uc_recurring_hosted_paypal_ipn_is_duplicate($ipn) {
-  if ($ipn->txn_id) {
-    $duplicate = db_query("SELECT COUNT(*) FROM {uc_payment_paypal_ipn} WHERE txn_id = :txn_id AND txn_type = :txn_type AND status <> :status", array(':txn_id' => : txn_id, ':txn_type' => : txn_type, ':status' => : status, '' => array(
-        ':txn_id' => : txn_id,
-        ':txn_type' => : txn_type,
-        ':status' => : status,
-        '' => array(
+  if (isset($ipn->txn_id)) {
+    $duplicate = db_query("SELECT COUNT(*) FROM {uc_payment_paypal_ipn} WHERE txn_id = :txn_id AND txn_type = :txn_type AND status <> :status", 
+        array(
           ':txn_id' => $ipn->txn_id,
           ':txn_type' => $ipn->txn_type,
           ':status' => 'Pending',
-        ),
-      )))->fetchField();
+        )
+      )->fetchField();
     if ($duplicate > 0) {
       watchdog('uc_recurring_hosted', 'IPN (Order:@order_id Txn: @txn_id) has been processed before.', array('@order_id' => $ipn->order_id, '@txn_id' => $ipn->txn_id), WATCHDOG_NOTICE);
       return TRUE;
