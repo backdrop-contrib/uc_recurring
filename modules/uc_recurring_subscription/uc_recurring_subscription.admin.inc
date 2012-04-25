@@ -53,8 +53,8 @@ function uc_recurring_subscription_overview($form, &$form_state) {
         $interval .= ' ' . t('(<a href="@link">cart link</a>)', array('@link' => url('cart/add/e-p' . $node->nid . '_q1_a' . $attribute->aid . 'o' . $feature->option->oid . '-isub', array('query' => array('destination' => 'cart/checkout'), 'absolute' => TRUE))));
       }
 
-      if ($feature->regular_interval_value != $feature->initial_charge_value &&
-          $feature->regular_interval_unit != $feature->initial_charge_unit) {
+      if (!($feature->regular_interval_value == $feature->initial_charge_value &&
+          $feature->regular_interval_unit == $feature->initial_charge_unit)) {
         $trial = theme('uc_price', array('price' => $product->sell_price)) . ' - ' . $feature->initial_charge_value . ' ' . $feature->initial_charge_unit;
       }
 
