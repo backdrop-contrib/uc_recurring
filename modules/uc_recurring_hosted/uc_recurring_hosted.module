@@ -24,7 +24,7 @@ function uc_recurring_hosted_menu() {
     $items['uc_recurring_hosted/paypal/ipn'] = array(
       'title' => 'PayPal IPN',
       'page callback' => 'uc_recurring_hosted_paypal_ipn',
-      'access callback' => 'uc_paypal_ipn_access',
+      'access callback' => TRUE, //'uc_paypal_ipn_access',
       'type' => MENU_CALLBACK,
       'file' => 'uc_recurring_hosted.paypal_ipn.inc',
     );
@@ -32,7 +32,7 @@ function uc_recurring_hosted_menu() {
       'title' => 'PayPal IPN',
       'page callback' => 'uc_recurring_hosted_paypal_ipn',
       'page arguments' => array(3),
-      'access callback' => 'uc_paypal_ipn_access',
+      'access callback' => TRUE, //'uc_paypal_ipn_access',
       'type' => MENU_CALLBACK,
       'file' => 'uc_recurring_hosted.paypal_ipn.inc',
     );
@@ -575,8 +575,8 @@ function uc_recurring_hosted_paypal_wps_process($order, &$fee) {
  * same trick to alter the paypal form, its a messy hack but works for now.
  */
 function uc_recurring_hosted_form_uc_paypal_wps_form_alter(&$form, $form_state) {
-  $order = $form['#parameters'][2];
-
+  $order = $form_state['build_info']['args'][0];
+  
   $recurring_fees = array();
   // if recurring fees exist in the order
   if (module_exists('uc_recurring_product')) {
