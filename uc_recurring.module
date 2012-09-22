@@ -893,7 +893,7 @@ function uc_recurring_get_fees($order, $reset = FALSE) {
  */
 function uc_recurring_get_fees_for_renew() {
   $fees = array();
-  $result = db_query("SELECT * FROM {uc_recurring_users} WHERE remaining_intervals <> :remaining_intervals AND next_charge <= :next_charge AND own_handler = :own_handler ORDER BY order_id DESC", array(':remaining_intervals' => 0, ':next_charge' => REQUEST_TIME, ':own_handler' => 0));
+  $result = db_query("SELECT * FROM {uc_recurring_users} WHERE remaining_intervals <> :remaining_intervals AND next_charge <= :next_charge AND status = :status AND own_handler = :own_handler ORDER BY order_id DESC", array(':remaining_intervals' => 0, ':next_charge' => REQUEST_TIME, ':status' => UC_RECURRING_FEE_STATUS_ACTIVE, ':own_handler' => 0));
   foreach ($result as $fee) {
     $fee->data = unserialize($fee->data);
     $fees[$fee->rfid] = $fee;
