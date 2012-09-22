@@ -478,7 +478,7 @@ function uc_recurring_hosted_authorizenet_arb_cancel($order, $fee) {
   $data = _uc_authorizenet_arb_parse_response($response);
 
   if ($data['resultCode'] == 'Error') {
-    if (!empty($order->$order_id)) {
+    if (!empty($order->order_id)) {
       uc_order_comment_save($order->order_id, 0, t('Authorize.Net: Subscription @subscription_id cancellation failed.@error - @text', array('@subscription_id' => $subscription_id, '@error' => $data['code'], '@text' => $data['text'])), 'admin');
     }
     return FALSE;
