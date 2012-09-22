@@ -449,6 +449,12 @@ function uc_recurring_renew($fee) {
  */
 function uc_recurring_create_renewal_order($fee) {
   global $user;
+
+  // Clear CC cache so that correct info is loaded (if any)
+  if (module_exists('uc_credit')) {
+    uc_credit_cache('clear');
+  }
+
   $order = uc_order_load($fee->order_id);
   $old_id = $order->order_id;
 
