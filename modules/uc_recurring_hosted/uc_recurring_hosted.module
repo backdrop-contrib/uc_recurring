@@ -373,6 +373,8 @@ function uc_recurring_hosted_authorizenet_arb_process($order, &$fee) {
     );
   }
 
+  drupal_alter('uc_recurring_hosted_arb_process', $data, $fee, $order);
+
   // Build the XML string.
   $xml = _uc_authorizenet_xml_api_wrapper('ARBCreateSubscriptionRequest', _uc_authorizenet_array_to_xml($data));
 
