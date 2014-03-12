@@ -542,6 +542,7 @@ function uc_recurring_product_process_order($order, $data = array()) {
       // There was no error, so save all fee objects.
       foreach ($fee_objects as $object) {
         $rfid = uc_recurring_fee_user_save($object);
+        rules_invoke_event('uc_recurring_product_renewal_created', $order, $fee);
         uc_order_comment_save($order->order_id, $user->uid, t('Recurring fee <a href="@recurring-view-fee">@rfid</a> added to order.', array('@recurring-view-fee' => url('admin/store/orders/recurring/view/fee/' . $rfid), '@rfid' => $rfid)));
         $return[] = $rfid;
       }
