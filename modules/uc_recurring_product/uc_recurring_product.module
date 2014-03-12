@@ -515,6 +515,8 @@ function uc_recurring_product_process_order($order, $data = array()) {
         'nid' => $product_fee->nid,
         'qty' => $product['product']->qty,
         'extension' => 0,
+        'amount' => round($fee->fee_amount, 2),
+        'txn_type' => 'web_accept',
       ) + $data;
       $fee->attempts = 0;
       $fee->pfid = $product_fee->pfid;
