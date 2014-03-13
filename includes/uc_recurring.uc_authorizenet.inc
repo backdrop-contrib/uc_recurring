@@ -58,7 +58,7 @@ function uc_recurring_authorizenet_cim_process($order, &$fee) {
     $data = array(
       'txn_type' => UC_CREDIT_REFERENCE_SET,
     );
-    return uc_authorizenet_charge($order->order_id, $order->total_amount, $data);
+    return uc_authorizenet_charge($order->order_id, $order->order_total, $data);
   }
   return TRUE;
 }
