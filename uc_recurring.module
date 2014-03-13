@@ -591,6 +591,7 @@ function uc_recurring_get_extension_list($fee_id = NULL) {
     $result = db_query("SELECT * FROM {uc_recurring_extensions} WHERE (pfid = :pfid OR pfid IS NULL) ORDER BY pfid DESC, rebill_attempt ASC", array(':pfid' => $fee_id));
   }
 
+  $extensions = array();
   foreach ($result as $extension) {
     if (!isset($extensions[$extension->rebill_attempt])) {
       $extensions[$extension->rebill_attempt] = $extension;
