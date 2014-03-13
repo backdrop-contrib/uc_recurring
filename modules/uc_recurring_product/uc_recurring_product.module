@@ -406,7 +406,8 @@ function uc_recurring_product_form_uc_cart_checkout_form_alter(&$form, $form_sta
       }
       elseif ($count == 1) {
         // If only one payment method remains, make it the default.
-        $form['panes']['payment']['payment_method']['#default_value'] = array_pop(array_keys($form['panes']['payment']['payment_method']['#options']));
+        $payment_method_keys = array_keys($form['panes']['payment']['payment_method']['#options']);
+        $form['panes']['payment']['payment_method']['#default_value'] = array_pop($payment_method_keys);
       }
     }
   }
