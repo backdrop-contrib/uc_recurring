@@ -1,0 +1,6 @@
+[ucRecurringPaypalWPSTestCase]
+name = Paypal WPS
+description = Test the paypal IPN callback on recurring orders
+group = Ubercart recurring fees
+file = uc_recurring_hosted.test
+

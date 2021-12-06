@@ -15,7 +15,7 @@ function uc_recurring_order_menu() {
   $items['admin/store/settings/orders/edit/recurring'] = array(
     'title' => 'Recurring orders',
     'description' => 'Edit recurring order information.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('uc_recurring_order_settings_form'),
     'access arguments' => array('administer store'),
     'type' => MENU_LOCAL_TASK,
@@ -25,16 +25,27 @@ function uc_recurring_order_menu() {
 }
 
 /**
+ * Implements hook_config_info().
+ */
+function uc_recurring_order_config_info() {
+  $prefixes['uc_recurring_order.settings'] = array(
+    'label' => t('Recurring Payments API settings'),
+    'group' => t('Configuration'),
+  );
+  return $prefixes;
+}
+
+/**
  * Settings for recurring orders
  */
 function uc_recurring_order_settings_form($form) {
-  drupal_set_title(t('Recurring Order Settings'));
+  backdrop_set_title(t('Recurring Order Settings'));
 
-  $intervals = variable_get('uc_recurring_order_interval_options', array());
+  $intervals = config_get('uc_recurring_order.settings', 'uc_recurring_order_interval_options');
   foreach ($intervals as $int => $value) {
     $options[] = $int . '|' . $value;
   }
-  $options = !empty($options) ? implode("\n", $options) : '';
+  $options = !empty($options)?implode("\n", $options) : '';
 
   $form = array();
   $form['interval_options'] = array(
@@ -61,7 +72,9 @@ function uc_recurring_order_settings_form_validate($form, &$form_state) {
   $options = preg_split('/[\r\n]+/', $form_state['values']['interval_options']);
   $errors = '';
   foreach ($options as $key => $value) {
-    if (!$value) continue;
+    if (!$value) {
+      continue;
+    }
     $i = explode('|', $value);
     if (strtotime($i[0])) {
       $intervals[$i[0]] = (isset($i[1]) && $i[1] !== '') ? $i[1] : $i[0];
@@ -81,8 +94,8 @@ function uc_recurring_order_settings_form_validate($form, &$form_state) {
  * @see http://drupal.org/node/1354
  */
 function uc_recurring_order_settings_form_submit($form, &$form_state) {
-  variable_set('uc_recurring_order_interval_options', $form_state['values']['intervals']);
-  drupal_set_message(t('The recurring options have been saved.'));
+  config_set('uc_recurring_order.settings', 'uc_recurring_order_interval_options', $form_state['values']['intervals']);
+  backdrop_set_message(t('The recurring options have been saved.'));
 }
 
 /**
@@ -92,7 +105,7 @@ function uc_recurring_order_settings_form_submit($form, &$form_state) {
  *   An array of interval options
  */
 function uc_recurring_order_get_intervals() {
-  $options = variable_get('uc_recurring_order_interval_options', array());
+  $options = config_get('uc_recurring_order.settings', 'uc_recurring_order_interval_options');
   foreach ($options as $key => $option) {
     $options[check_plain($key)] = check_plain($option);
   }
@@ -105,7 +118,7 @@ function uc_recurring_order_get_intervals() {
 function uc_recurring_order_uc_cart_pane($items) {
   $panes[] = array(
     'id' => 'recurring',
-    'body' => drupal_get_form('uc_recurring_order_pane_cart'),
+    'body' => backdrop_get_form('uc_recurring_order_pane_cart'),
     'title' => t('Recurring order'),
     'desc' => t("Allows shoppers to select to have their order automatically re-occur."),
     'weight' => 1,
@@ -148,7 +161,7 @@ function uc_recurring_order_pane_cart_submit($form, &$form_state) {
     $next_renewal = strtotime('+' . $recurring_option, REQUEST_TIME);
     if ($next_renewal > REQUEST_TIME) {
       $_SESSION['recurring_option'] = $recurring_option;
-      drupal_set_message(t('Your next order after this will occur on @next.', array('@next' => format_date($next_renewal, 'short'))));
+      backdrop_set_message(t('Your next order after this will occur on @next.', array('@next' => format_date($next_renewal, 'short'))));
     }
     else {
       unset($_SESSION['recurring_option']);
@@ -212,7 +225,7 @@ function uc_recurring_order_pane_checkout($op, &$order, $form = NULL, &$form_sta
       if (module_exists('uc_recurring_product')) {
         if (($products = uc_recurring_product_get_recurring_products_in_order($order))) {
           unset($_SESSION['recurring_option']);
-          drupal_set_message(t('Unable to create recurring order when it contains recurring products'), 'warning');
+          backdrop_set_message(t('Unable to create recurring order when it contains recurring products'), 'warning');
           return FALSE;
         }
       }
@@ -249,6 +262,7 @@ function uc_recurring_order_uc_order($op, $order, $arg2) {
     case 'submit':
       $recurring = isset($order->data['recurring_option']) ? $order->data['recurring_option'] : 0;
       $next_renewal = strtotime('+' . $recurring);
+      // TODO This variable was probably removed in Backdrop without replacement.
       if ($next_renewal > REQUEST_TIME && variable_get('uc_recurring_checkout_process', TRUE)) {
         if (uc_recurring_order_process_order($order, $recurring) === FALSE) {
           return array(array('pass' => FALSE, 'message' => t('Your order cannot be completed, because we could not process your recurring payment. Please review your payment details and contact us to complete your order if the problem persists.')));
@@ -261,15 +275,15 @@ function uc_recurring_order_uc_order($op, $order, $arg2) {
         global $user;
         $affected = db_update('uc_recurring_users')
           ->fields(array(
-            'fee_amount' => uc_order_get_total($arg1),
-          ))
+          'fee_amount' => uc_order_get_total($arg1),
+        ))
           ->condition('order_id', $arg1->order_id)
           ->execute();
         if ($affected > 0) {
           uc_order_comment_save($arg1->order_id, $user->uid, t('The recurring order amount was updated.'));
         }
         break;
-    }
+      }
   }
 }
 
@@ -279,10 +293,10 @@ function uc_recurring_order_uc_order($op, $order, $arg2) {
 function uc_recurring_order_process_order($order, $recurring) {
   global $user;
 
-  if (variable_get('uc_recurring_order_enabled', TRUE)) {
+  if (config_get('uc_recurring_order.settings', 'uc_recurring_order_enabled')) {
     $payment_method = !empty($order->payment_method) ? $order->payment_method : 'default';
     if (!($fee_handler = uc_recurring_get_recurring_info($payment_method))) {
-      drupal_set_message(t('A handler for processing and renewing recurring fees cannot be found for the @payment-method payment method.', array('@payment-method' => $order->payment_method)), 'error');
+      backdrop_set_message(t('A handler for processing and renewing recurring fees cannot be found for the @payment-method payment method.', array('@payment-method' => $order->payment_method)), 'error');
       return FALSE;
     }
 
@@ -325,7 +339,7 @@ function uc_recurring_order_process_order($order, $recurring) {
     $fee->order_product_id = NULL;
     $fee->own_handler = !empty($fee_handler['own handler']);
 
-    drupal_alter('recurring_fee_user_create', $fee);
+    backdrop_alter('recurring_fee_user_create', $fee);
 
     $rfid = FALSE;
     if (uc_recurring_invoke($fee->fee_handler, 'process callback', array($order, &$fee))) {
@@ -376,7 +390,7 @@ function uc_recurring_order_form_uc_recurring_admin_edit_form_alter(&$form, $for
       '#description' => theme('table', array(
         'header' => array('Product', 'Quantity', 'Price'),
         'rows' => $rows,
-       )),
+      )),
       '#weight' => -10,
     );
   }

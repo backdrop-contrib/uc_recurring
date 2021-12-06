@@ -149,7 +149,7 @@ function _uc_recurring_subscription_group_options() {
 
 function _uc_recurring_subscription_user_roles() {
   $roles = user_roles(TRUE);
-  unset($roles[DRUPAL_AUTHENTICATED_RID]);
+  unset($roles[BACKDROP_AUTHENTICATED_RID]);
   return $roles;
 }
 

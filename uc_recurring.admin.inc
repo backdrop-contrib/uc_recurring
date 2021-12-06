@@ -12,7 +12,7 @@ function uc_recurring_admin($filter = NULL, $id = NULL) {
   $item = menu_get_item();
 
   // Add the filter form to the top of the table.
-  $output = render(drupal_get_form('uc_recurring_admin_filter_form', $item));
+  $output = render(backdrop_get_form('uc_recurring_admin_filter_form', $item));
 
   // Build an array of fees to include in the admin table.
   $fees = array();
@@ -144,7 +144,7 @@ function uc_recurring_admin_charge_form($form, $form_state, $rfid, $fee_handler)
     return $form;
   }
   else {
-    drupal_set_message(t('Invalid fee handler was given, try again from the operations for this <a href="@url">recurring fee</a>, if problem persists contact the site administrator.', array('@url' => url(request_uri()))), 'error');
+    backdrop_set_message(t('Invalid fee handler was given, try again from the operations for this <a href="@url">recurring fee</a>, if problem persists contact the site administrator.', array('@url' => url(request_uri()))), 'error');
   }
 }
 
@@ -158,10 +158,10 @@ function uc_recurring_admin_charge_form_submit($form, &$form_state) {
 
   // Attempt to renew the charge.
   if (uc_recurring_renew($fee)) {
-    drupal_set_message(t('Recurring fee @fee charged successfully.', array('@fee' => $rfid)));
+    backdrop_set_message(t('Recurring fee @fee charged successfully.', array('@fee' => $rfid)));
   }
   else {
-    drupal_set_message(t('Attempt to charge recurring fee @fee failed.', array('@fee' => $rfid)), 'error');
+    backdrop_set_message(t('Attempt to charge recurring fee @fee failed.', array('@fee' => $rfid)), 'error');
   }
 }
 
@@ -171,8 +171,8 @@ function uc_recurring_admin_charge_form_submit($form, &$form_state) {
 function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
   $fee = uc_recurring_fee_user_load($rfid);
   if ($fee->fee_handler == $fee_handler) {
-    drupal_add_css(drupal_get_path('module', 'uc_recurring') . '/uc_recurring.css');
-    drupal_add_js(drupal_get_path('module', 'uc_recurring') . '/uc_recurring.js');
+    backdrop_add_css(backdrop_get_path('module', 'uc_recurring') . '/uc_recurring.css');
+    backdrop_add_js(backdrop_get_path('module', 'uc_recurring') . '/uc_recurring.js');
 
     $form['rfid'] = array(
       '#type' => 'hidden',
@@ -193,6 +193,10 @@ function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
       '#options' => uc_recurring_fee_status_label(),
     );
 
+    // TODO This variable was probably removed in Backdrop without replacement.
+    // TODO This variable was probably removed in Backdrop without replacement.
+    // TODO This variable was probably removed in Backdrop without replacement.
+    // TODO This variable was probably removed in Backdrop without replacement.
     $form['fee_amount'] = array(
       '#type' => 'textfield',
       '#title' => t('Recurring fee amount'),
@@ -200,7 +204,7 @@ function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
       '#default_value' => $fee->fee_amount,
       '#size' => 16,
       '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),
-      '#field_suffix' => variable_get('uc_sign_after_amount', FALSE) ? variable_get('uc_currency_sign', '$') : '',
+      '#field_suffix' => variable_get('uc_sign_after_amount', FALSE)?variable_get('uc_currency_sign', '$') : '',
     );
 
     $form['num_interval'] = array(
@@ -212,13 +216,13 @@ function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
 
     $unlimited_intervals_attributes = array();
     $number_intervals_attributes = array();
-    
+
     if (($fee->remaining_intervals < 0 && !isset($form_state['values']['unlimited_intervals'])) || (isset($form_state['values']) && isset($form_state['values']['unlimited_intervals']) && $form_state['values']['unlimited_intervals'] == 1 )) {
       $unlimited_intervals_attributes['checked'] = 'checked';
       $number_intervals_default_value = 1;
       $number_intervals_attributes = array('disabled' => 'disabled');
     }
-    else{
+    else {
       $number_intervals_default_value = ($fee->remaining_intervals > 0) ? $fee->remaining_intervals : 1;
     }
 
@@ -231,13 +235,13 @@ function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
         'wrapper' => 'rebilling_num_intervals_replace',
       ),
     );
-    
+
     $form['num_interval']['number_intervals'] = array(
       '#type' => 'textfield',
       '#title' => t('Remaining billing periods'),
       '#size' => 16,
       '#prefix' => '<div id="rebilling_num_intervals_replace">',
-      '#suffix' => '</div>',      
+      '#suffix' => '</div>',
       '#default_value' => $number_intervals_default_value,
       '#attributes' => $number_intervals_attributes,
     );
@@ -283,7 +287,7 @@ function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
 
       $form['regular']['regular_interval_value'] = array(
         '#type' => 'select',
-        '#options' => drupal_map_assoc(range(1, 52)),
+        '#options' => backdrop_map_assoc(range(1, 52)),
         '#default_value' => $fee->regular_interval_value,
       );
       $form['regular']['regular_interval_unit'] = array(
@@ -318,11 +322,11 @@ function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
     return $form;
   }
   else {
-    drupal_set_message(t('Invalid fee handler was given, try again from the operations for this <a href="@url">recurring fee</a>, if problem persists contact the site administrator.', array('@url' => url(request_uri()))), 'error');
+    backdrop_set_message(t('Invalid fee handler was given, try again from the operations for this <a href="@url">recurring fee</a>, if problem persists contact the site administrator.', array('@url' => url(request_uri()))), 'error');
   }
 }
 
-function rebilling_num_intervals_callback($form, $form_state) {  
+function rebilling_num_intervals_callback($form, $form_state) {
   return $form['num_interval']['number_intervals'];
 }
 
@@ -372,20 +376,20 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
   }
 
   $status = $fee->status;
-  if ($fee->status != UC_RECURRING_FEE_STATUS_ACTIVE && $number_intervals != 0) { 
+  if ($fee->status != UC_RECURRING_FEE_STATUS_ACTIVE && $number_intervals != 0) {
     $status = UC_RECURRING_FEE_STATUS_ACTIVE;
   }
 
-  // todo - replace with a drupal_write_record()
+  // todo - replace with a backdrop_write_record()
   db_update('uc_recurring_users')
     ->fields(array(
-      'fee_title' => $fee_title,
-      'fee_amount' => $fee_amount,
-      'regular_interval' => $interval,
-      'remaining_intervals' => $number_intervals,
-      'next_charge' => $next_charge,
-      'status' => $status,
-    ))
+    'fee_title' => $fee_title,
+    'fee_amount' => $fee_amount,
+    'regular_interval' => $interval,
+    'remaining_intervals' => $number_intervals,
+    'next_charge' => $next_charge,
+    'status' => $status,
+  ))
     ->condition('rfid', $rfid)
     ->execute();
 
@@ -393,11 +397,11 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
     'revision' => 'themed-original',
     'location' => 'recurring-admin',
   );
-  drupal_set_message(t('The changes to <a href="@user-link">@user</a> recurring fee @rfid (@title) has been saved. The next charge of !fee_amount will be on @date.', array('@user' => $member->name, '@user-link' => url('user/' . $member->uid), '@rfid' => $rfid, '@title' => $fee_title, '!fee_amount' => theme('uc_price',  array('price' => $fee_amount)), '@date' => format_date($next_charge))));
+  backdrop_set_message(t('The changes to <a href="@user-link">@user</a> recurring fee @rfid (@title) has been saved. The next charge of !fee_amount will be on @date.', array('@user' => $member->name, '@user-link' => url('user/' . $member->uid), '@rfid' => $rfid, '@title' => $fee_title, '!fee_amount' => theme('uc_price',   array('price' => $fee_amount)), '@date' => format_date($next_charge))));
 
   // Fee was already cancelled and now has been resumed, add a comment to the order.
   if ($fee->status != $status && $status == UC_RECURRING_FEE_STATUS_ACTIVE) {
-    uc_order_comment_save($fee->order_id, $user->uid, t('<a href="@user-link">@user</a> resumed the recurring fee <a href="@fee-link">@fee</a>.', array('@user-link' => url('user/'. $user->uid), '@user' => $user->name, '@fee-link' => url('admin/store/orders/recurring/view/fee/'. $rfid), '@fee'=> $rfid)));
+    uc_order_comment_save($fee->order_id, $user->uid, t('<a href="@user-link">@user</a> resumed the recurring fee <a href="@fee-link">@fee</a>.', array('@user-link' => url('user/' . $user->uid), '@user' => $user->name, '@fee-link' => url('admin/store/orders/recurring/view/fee/' . $rfid), '@fee' => $rfid)));
   }
   // If the number of intervals was set to zero then also call cancel.
   if ($fee->status == UC_RECURRING_FEE_STATUS_ACTIVE && $number_intervals == 0) {
@@ -409,6 +413,7 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
  * Recurring payment settings form.
  */
 function uc_recurring_payment_form($form, &$form_state) {
+  $config = config('uc_recurring.settings');
   $options = array();
   $methods = uc_recurring_get_recurring_info();
   foreach ($methods as $fee_handler => $method) {
@@ -420,32 +425,33 @@ function uc_recurring_payment_form($form, &$form_state) {
     }
   }
   if (empty($options)) {
-    drupal_set_message('No supported payment methods found. Recurring cannot be collected without a supported payment method.', 'error');
+    backdrop_set_message('No supported payment methods found. Recurring cannot be collected without a supported payment method.', 'error');
   }
+  $form['#config'] = 'uc_recurring.settings';
   $form['uc_recurring_payment_methods'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Valid payment methods for orders with recurring fees'),
     '#description' => t('Only selected payment methods will be available for customers purchasing products with recurring fees.<br/>It is up to you to make sure your chosen handler is compatible with the payment methods you select.<br />For example, the uc_recurring handler is only compatible with the Credit Card payment method.'),
     '#options' => $options,
-    '#default_value' => variable_get('uc_recurring_payment_methods', array()),
+    '#default_value' => $config->get('uc_recurring_payment_methods'),
   );
   $form['uc_recurring_checkout_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Recurring fee checkout form message'),
     '#description' => t('Enter a message to be displayed on the checkout form page when a customer has products in the cart with recurring fees.<br />Leave blank to not display any message.'),
-    '#default_value' => variable_get('uc_recurring_checkout_message', ''),
+    '#default_value' => $config->get('uc_recurring_checkout_message'),
   );
   $form['uc_recurring_trigger_renewals'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable triggered renewals'),
     '#description' => t('Enable recurring fees to be triggered on cron jobs. Disabling this is a simple way to stop recurring billing from happening for gateways where uc_recurring is responsible for triggering payments (this is especially useful when working on a development copy).'),
-    '#default_value' => variable_get('uc_recurring_trigger_renewals', TRUE),
+    '#default_value' => $config->get('uc_recurring_trigger_renewals'),
   );
   $form['uc_recurring_checkout_process'] = array(
     '#type' => 'checkbox',
     '#title' => t('Attempt to process recurring fees during checkout.'),
     '#description' => t('If not selected, you must have an alternate way of processing fees.<br />With the default handler, this is only possible in credit card debug mode.'),
-    '#default_value' => variable_get('uc_recurring_checkout_process', TRUE),
+    '#default_value' => $config->get('uc_recurring_checkout_process'),
   );
   $form['uc_recurring_checkout_fail'] = array(
     '#type' => 'radios',
@@ -456,7 +462,7 @@ function uc_recurring_payment_form($form, &$form_state) {
       'proceed' => t('Return a failed message but complete checkout.'),
       'silent' => t('Show no message and complete checkout.'),
     ),
-    '#default_value' => variable_get('uc_recurring_checkout_fail', 'fail'),
+    '#default_value' => $config->get('uc_recurring_checkout_fail'),
   );
 
   $form['extensions'] = array(
@@ -471,7 +477,7 @@ function uc_recurring_payment_form($form, &$form_state) {
     $days = $ext->time_to_extend / (24 * 60 * 60);
     $rows[] = array(
       'attempt' => $ext->rebill_attempt + 1,
-      'time_to_extent' => $ext->time_to_extend == 0 ? t('expire') : t('@num_days days', array('@num_days' => $days)),
+      'time_to_extent' => $ext->time_to_extend == 0?t('expire') : t('@num_days days', array('@num_days' => $days)),
     );
     if ($ext->time_to_extend == 0) {
       break;
@@ -539,7 +545,7 @@ function uc_recurring_order_information($order_id) {
     $condition = db_and();
     $condition->condition('o.order_id', $renewal_orders, 'IN');
 
-    $output .= drupal_render(uc_recurring_order_admin($condition, TRUE));
+    $output .= backdrop_render(uc_recurring_order_admin($condition, TRUE));
   }
   else {
     $output = t('No recurring fees associated with this order');
@@ -553,10 +559,10 @@ function uc_recurring_order_information($order_id) {
  * Latest version of ubercart 3.x doesn't have this function anymore.
  * (uses views instead to create the admin interface)
  * However uc_recurring currently still looks for this function (see http://drupal.org/node/1283352)
- * 
- * As a temporary work-around, this function was copied 
+ *
+ * As a temporary work-around, this function was copied
  * from ubercart-7.x-3.0-beta4/uc_order/uc_order.admin.inc
- * 
+ *
  */
 
 /**
@@ -565,25 +571,41 @@ function uc_recurring_order_information($order_id) {
 function uc_recurring_order_admin($condition = NULL, $search = FALSE) {
   $header = array(
     array('data' => t('Actions')),
-    array('data' => t('Order ID'), 'field' => 'o.order_id', 'sort' => 'desc'),
+    array(
+      'data' => t('Order ID'),
+      'field' => 'o.order_id',
+      'sort' => 'desc',
+    ),
     array('data' => t('Customer')),
-    array('data' => t('Total'), 'align' => 'center', 'field' => 'o.order_total'),
-    array('data' => t('Purchase date'), 'align' => 'center', 'field' => 'o.created'),
-    array('data' => t('Status'), 'field' => 'os.title'),
+    array(
+      'data' => t('Total'),
+      'align' => 'center',
+      'field' => 'o.order_total',
+    ),
+    array(
+      'data' => t('Purchase date'),
+      'align' => 'center',
+      'field' => 'o.created',
+    ),
+    array(
+      'data' => t('Status'),
+      'field' => 'os.title',
+    ),
   );
 
+  // TODO This variable was probably removed in Backdrop without replacement.
   $address = variable_get('uc_customer_list_address', 'billing') == 'shipping' ? 'delivery' : 'billing';
 
   $query = db_select('uc_orders', 'o')
     ->fields('o', array(
-      'order_id',
-      'uid',
-      'order_total',
-      'created',
-      $address . '_first_name',
-      $address . '_last_name',
-      'order_status',
-    ));
+    'order_id',
+    'uid',
+    'order_total',
+    'created',
+    $address . '_first_name',
+    $address . '_last_name',
+    'order_status',
+  ));
 
   $query->leftJoin('uc_order_statuses', 'os', 'o.order_status = os.order_status_id');
   $query->fields('os', array('title'));
@@ -601,6 +623,7 @@ function uc_recurring_order_admin($condition = NULL, $search = FALSE) {
     }
   }
 
+  // TODO This variable was probably removed in Backdrop without replacement.
   $query = $query->extend('PagerDefault')->extend('TableSort')
     ->orderByHeader($header)
     ->limit(variable_get('uc_order_number_displayed', 30));
@@ -621,32 +644,47 @@ function uc_recurring_order_admin($condition = NULL, $search = FALSE) {
 
     $rows[] = array(
       'data' => array(
-        array('data' => uc_order_actions($order, TRUE), 'nowrap' => 'nowrap'),
+        array(
+          'data' => uc_order_actions($order, TRUE),
+          'nowrap' => 'nowrap',
+        ),
         array('data' => $order->order_id),
-        array('data' => check_plain($order_name), 'nowrap' => 'nowrap'),
-        array('data' => array('#theme' => 'uc_price', '#price' => $order->order_total), 'align' => 'right'),
-        array('data' => format_date($order->created, 'uc_store'), 'align' => 'center'),
+        array(
+          'data' => check_plain($order_name),
+          'nowrap' => 'nowrap',
+        ),
+        array(
+          'data' => array(
+            '#theme' => 'uc_price',
+            '#price' => $order->order_total,
+          ),
+          'align' => 'right',
+        ),
+        array(
+          'data' => format_date($order->created, 'uc_store'),
+          'align' => 'center',
+        ),
         array('data' => $order->title),
       ),
       'id' => 'order-' . $order->order_id,
     );
   }
 
-  drupal_add_js(array(
+  backdrop_add_js(array(
     'ucURL' => array(
       'adminOrders' => url('admin/store/orders/'),
     ),
   ), 'setting');
-  drupal_add_js(drupal_get_path('module', 'uc_order') . '/uc_order.js');
+  backdrop_add_js(backdrop_get_path('module', 'uc_order') . '/uc_order.js');
 
   $build = array();
 
   if ($search === FALSE) {
-    $build['order_overview_select_form'] = drupal_get_form('uc_order_select_form') + array(
+    $build['order_overview_select_form'] = backdrop_get_form('uc_order_select_form') + array(
       '#prefix' => '<div class="order-overview-form">',
       '#suffix' => '</div>',
     );
-    $build['order_overview_admin_sort_form'] = drupal_get_form('uc_order_admin_sort_form') + array(
+    $build['order_overview_admin_sort_form'] = backdrop_get_form('uc_order_admin_sort_form') + array(
       '#prefix' => '<div class="order-overview-form">',
       '#suffix' => '</div>',
     );

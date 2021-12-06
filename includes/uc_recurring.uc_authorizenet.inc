@@ -36,6 +36,7 @@ function uc_recurring_uc_authorizenet_recurring_info() {
     ), // Use the default user operation defined in uc_recurring.
   );
 
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_authnet_cim_mode', 'disabled') != 'disabled') {
     $items['authorizenet'] = $items['authorizenet_cim'];
   }
@@ -54,6 +55,7 @@ function uc_recurring_uc_authorizenet_recurring_info() {
  */
 function uc_recurring_authorizenet_cim_process($order, &$fee) {
   $fee->fee_handler = 'authorizenet_cim';
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_authnet_cim_profile', FALSE) == FALSE) {
     $data = array(
       'txn_type' => UC_CREDIT_REFERENCE_SET,
@@ -134,7 +136,7 @@ function uc_recurring_authorizenet_cim_update_form($form, $form_state, $rfid) {
     $form['bill_to']['#description'] = t('Credit card information must be provided to update billing address.');
     $form['bill_to']['#collapsible'] = FALSE;
     $form['bill_to']['#theme'] = 'uc_recurring_authorizenet_cim_billto_form';
-    
+
     // Make billing info form items required
     $form['bill_to']['billing_first_name']['#required'] = TRUE;
     $form['bill_to']['billing_last_name']['#required'] = TRUE;
@@ -159,14 +161,16 @@ function uc_recurring_authorizenet_cim_update_form($form, $form_state, $rfid) {
 function uc_recurring_authorizenet_cim_update_form_validate(&$form, &$form_state) {
   $has_errors = FALSE;
   $values = $form_state['values'];
-  
+
   // Make sure an owner value was entered.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_owner_enabled', FALSE) && empty($values['cc_data']['cc_owner'])) {
     form_set_error('cc_data][cc_owner', t('Enter the owner name as it appears on the card.'));
     $has_errors = TRUE;
   }
-  
+
   // Validate the CC number if that's turned on/check for non-digits.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_validate_numbers', TRUE)) {
     // Remove the non-numeric characters
     $cc_number = preg_replace('/[^0-9]/', '', $values['cc_data']['cc_number']);
@@ -176,35 +180,39 @@ function uc_recurring_authorizenet_cim_update_form_validate(&$form, &$form_state
       $has_errors = TRUE;
     }
   }
-  
+
   // Validate the start date (if entered).
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_start_enabled', FALSE) && !_uc_credit_valid_card_start($values['cc_data']['cc_start_month'], $values['cc_data']['cc_start_year'])) {
     form_set_error('cc_data][cc_start_month', t('The start date you entered is invalid.'));
     form_set_error('cc_data][cc_start_year', t('The start date you entered is invalid.'));
     $has_errors = TRUE;
   }
-  
+
   // Validate the card expiration date.
   if (!_uc_credit_valid_card_expiration($values['cc_data']['cc_exp_month'], $values['cc_data']['cc_exp_year'])) {
     form_set_error('cc_data][cc_exp_month', t('The credit card you entered has expired.'));
     form_set_error('cc_data][cc_exp_year', t('The credit card you entered has expired.'));
     $has_errors = TRUE;
   }
-  
+
   // Validate the issue number (if entered).  With issue numbers, '01' is
   // different from '1', but is_numeric() is still appropriate.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_issue_enabled', FALSE) && !_uc_credit_valid_card_issue($values['cc_data']['cc_issue'])) {
     form_set_error('cc_data][cc_issue', t('The issue number you entered is invalid.'));
     $has_errors = TRUE;
   }
 
   // Validate the CVV number if enabled.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_cvv_enabled', TRUE) && !_uc_credit_valid_cvv($values['cc_data']['cc_cvv'])) {
     form_set_error('cc_data][cc_cvv', t('You have entered an invalid CVV number.'));
     $has_errors = TRUE;
   }
 
   // Validate the bank name if enabled.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_bank_enabled', FALSE) && empty($values['cc_data']['cc_bank'])) {
     form_set_error('cc_data][cc_bank', t('You must enter the issuing bank for that card.'));
     $has_errors = TRUE;
@@ -224,7 +232,7 @@ function uc_recurring_authorizenet_cim_update_form_validate(&$form, &$form_state
 function uc_recurring_authorizenet_cim_update_form_submit(&$form, &$form_state) {
   $fee = uc_recurring_fee_user_load($form_state['values']['rfid']);
   $order = uc_order_load($fee->order_id);
-  $last4old=substr($order->payment_details['cc_number'], -4);
+  $last4old = substr($order->payment_details['cc_number'], -4);
   $order->payment_details = $form_state['values']['cc_data'];
   $log = array();
 
@@ -233,7 +241,10 @@ function uc_recurring_authorizenet_cim_update_form_submit(&$form, &$form_state) 
     foreach ($bill_changes as $key => $value) {
       if ($order->$key != $value) {
         if (!is_array($value)) {
-          $log[$key] = array('old' => $order->$key, 'new' => $value);
+          $log[$key] = array(
+            'old' => $order->$key,
+            'new' => $value,
+          );
         }
         $order->$key = $value;
       }
@@ -243,15 +254,18 @@ function uc_recurring_authorizenet_cim_update_form_submit(&$form, &$form_state) 
   $refs = array_keys($order->data['cc_txns']['references']);
   $profile_id = end($refs);
   if ($message = _uc_recurring_uc_authorizenet_cim_update_paymentprofile($order, $profile_id)) {
-    drupal_set_message(t('Account update failed: @error', array('@error' => $message)), 'error');
+    backdrop_set_message(t('Account update failed: @error', array('@error' => $message)), 'error');
     $form_state['redirect'] = FALSE;
   }
   else {
-    drupal_set_message(t('Account updated'));
+    backdrop_set_message(t('Account updated'));
     uc_order_save($order);
-    $last4new=substr($order->payment_details['cc_number'], -4);
-    if ($last4new!=$last4old) {
-      $log[t('Credit card')] = array('old' => $last4old, 'new' => $last4new);
+    $last4new = substr($order->payment_details['cc_number'], -4);
+    if ($last4new != $last4old) {
+      $log[t('Credit card')] = array(
+        'old' => $last4old,
+        'new' => $last4new,
+      );
     }
     if ($log) {
       uc_order_log_changes($order->order_id, $log);
@@ -263,14 +277,15 @@ function uc_recurring_authorizenet_cim_update_form_submit(&$form, &$form_state) 
  * Theme billing address form items
  */
 function theme_uc_recurring_authorizenet_cim_billto_form($form) {
+  // TODO: Should this theme uc_recurring_authorizenet_cim_billto_form be declared in hook_theme()?
   $output = '<table class="order-edit-table">';
   foreach (element_children($form) as $field) {
     $title = $form[$field]['#title'];
     $form[$field]['#title'] = NULL;
-    $output .= '<tr><td class="oet-label">'. $title .':</td><td>' . drupal_render($form[$field]) .'</td></tr>';
+    $output .= '<tr><td class="oet-label">' . $title . ':</td><td>' . backdrop_render($form[$field]) . '</td></tr>';
   }
   $output .= '</table>';
-  
+
   return $output;
 }
 
@@ -280,6 +295,7 @@ function theme_uc_recurring_authorizenet_cim_billto_form($form) {
  *         uc_authorizenet_cim_update_paymentprofile($order, $ref_id)
  */
 function _uc_recurring_uc_authorizenet_cim_update_paymentprofile($order, $ref_id) {
+  // TODO This variable was probably removed in Backdrop without replacement.
   $server = variable_get('uc_authnet_cim_mode', 'disabled');
 
   // Help build the request.

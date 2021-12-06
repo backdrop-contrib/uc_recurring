@@ -17,6 +17,7 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
     $order_id = $ipn->rp_invoice_id;
   }
 
+  // TODO This variable was probably removed in Backdrop without replacement.
   watchdog('uc_recurring_hosted', 'Receiving recurring IPN at URL for order @order_id. !debug',
     array('@order_id' => $order_id, '!debug' => variable_get('uc_paypal_wps_debug_ipn', FALSE) ? '<pre>' . check_plain(print_r($_POST, TRUE)) . '</pre>' : ''));
 
@@ -30,6 +31,7 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
   $ipn->order_id = $order->order_id;
 
   // Log the IPN against the actual order if debug enabled.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_paypal_wps_debug_ipn', FALSE)) {
     uc_order_log_changes($order->order_id, array('<pre>' . print_r($ipn, TRUE) . '</pre>'));
   }
@@ -186,8 +188,9 @@ function _uc_recurring_hosted_paypal_ipn_payment($ipn) {
     case 'Voided':
       uc_order_comment_save($ipn->order_id, 0, t('The authorization has been voided.'), 'admin');
       break;
-      
+
     default:
+      // TODO This variable was probably removed in Backdrop without replacement.
       watchdog('uc_recurring_hosted', 'Payment status @status not recognized.  Nothing to do. !debug',
         array('@status' => $ipn->payment_status, '!debug' => variable_get('uc_paypal_wps_debug_ipn', FALSE) ? '<pre>' . check_plain(print_r($_POST, TRUE)) . '</pre>' : ''));
       break;
@@ -249,17 +252,19 @@ function _uc_recurring_hosted_paypal_ipn_validate($ipn) {
 
   $req .= 'cmd=_notify-validate';
 
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_paypal_wpp_server', '') == 'https://api-3t.paypal.com/nvp') {
     $host = 'https://www.paypal.com/cgi-bin/webscr';
   }
   else {
+    // TODO This variable was probably removed in Backdrop without replacement.
     $host = variable_get('uc_paypal_wps_server', 'https://www.sandbox.paypal.com/cgi-bin/webscr');
   }
-  $response = drupal_http_request($host, array(
-        'headers' => array(),
-        'method' => 'POST',
-        'data' => $req,
-      ));
+  $response = backdrop_http_request($host, array(
+    'headers' => array(),
+    'method' => 'POST',
+    'data' => $req,
+  ));
 
   // @todo: Change this to property_exists when we have a PHP requirement >= 5.1.
   if (array_key_exists('error', $response)) {
@@ -283,12 +288,12 @@ function _uc_recurring_hosted_paypal_ipn_validate($ipn) {
  */
 function _uc_recurring_hosted_paypal_ipn_is_duplicate($ipn) {
   if (isset($ipn->txn_id)) {
-    $duplicate = db_query("SELECT COUNT(*) FROM {uc_payment_paypal_ipn} WHERE txn_id = :txn_id AND txn_type = :txn_type AND status <> :status", 
+    $duplicate = db_query("SELECT COUNT(*) FROM {uc_payment_paypal_ipn} WHERE txn_id = :txn_id AND txn_type = :txn_type AND status <> :status",
         array(
-          ':txn_id' => $ipn->txn_id,
-          ':txn_type' => $ipn->txn_type,
-          ':status' => 'Pending',
-        )
+      ':txn_id' => $ipn->txn_id,
+      ':txn_type' => $ipn->txn_type,
+      ':status' => 'Pending',
+    )
       )->fetchField();
     if ($duplicate > 0) {
       watchdog('uc_recurring_hosted', 'IPN (Order:@order_id Txn: @txn_id) has been processed before.', array('@order_id' => $ipn->order_id, '@txn_id' => $ipn->txn_id), WATCHDOG_NOTICE);
@@ -302,5 +307,5 @@ function _uc_recurring_hosted_paypal_ipn_is_duplicate($ipn) {
  * Paypal IPN save function.
  */
 function _uc_recurring_hosted_paypal_ipn_save($ipn) {
-  drupal_write_record('uc_payment_paypal_ipn', $ipn);
+  backdrop_write_record('uc_payment_paypal_ipn', $ipn);
 }

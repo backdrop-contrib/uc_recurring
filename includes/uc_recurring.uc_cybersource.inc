@@ -50,6 +50,7 @@ function uc_recurring_uc_cybersource_recurring_info() {
  */
 function uc_recurring_cybersource_process($order, &$fee) {
   $fee->fee_handler = 'cybersource';
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_cybersource_soap_create_profile', FALSE) == FALSE) {
     // The uc_cybersource module doesn't yet support UC_CREDIT_REFERENCE_SET
     return _uc_recurring_cybersource_create_profile($order);
@@ -120,7 +121,7 @@ function uc_recurring_cybersource_update_form($form, $form_state, $rfid) {
     $form['bill_to']['#description'] = t('Credit card information must be provided to update billing address.');
     $form['bill_to']['#collapsible'] = FALSE;
     $form['bill_to']['#theme'] = 'uc_recurring_cybersource_billto_form';
-    
+
     // Make billing info form items required
     $form['bill_to']['billing_first_name']['#required'] = TRUE;
     $form['bill_to']['billing_last_name']['#required'] = TRUE;
@@ -145,14 +146,16 @@ function uc_recurring_cybersource_update_form($form, $form_state, $rfid) {
 function uc_recurring_cybersource_update_form_validate(&$form, &$form_state) {
   $has_errors = FALSE;
   $values = $form_state['values'];
-  
+
   // Make sure an owner value was entered.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_owner_enabled', FALSE) && empty($values['cc_data']['cc_owner'])) {
     form_set_error('cc_data][cc_owner', t('Enter the owner name as it appears on the card.'));
     $has_errors = TRUE;
   }
-  
+
   // Validate the CC number if that's turned on/check for non-digits.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_validate_numbers', TRUE)) {
     // Remove the non-numeric characters
     $cc_number = preg_replace('/[^0-9]/', '', $values['cc_data']['cc_number']);
@@ -162,35 +165,39 @@ function uc_recurring_cybersource_update_form_validate(&$form, &$form_state) {
       $has_errors = TRUE;
     }
   }
-  
+
   // Validate the start date (if entered).
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_start_enabled', FALSE) && !_uc_credit_valid_card_start($values['cc_data']['cc_start_month'], $values['cc_data']['cc_start_year'])) {
     form_set_error('cc_data][cc_start_month', t('The start date you entered is invalid.'));
     form_set_error('cc_data][cc_start_year', t('The start date you entered is invalid.'));
     $has_errors = TRUE;
   }
-  
+
   // Validate the card expiration date.
   if (!_uc_credit_valid_card_expiration($values['cc_data']['cc_exp_month'], $values['cc_data']['cc_exp_year'])) {
     form_set_error('cc_data][cc_exp_month', t('The credit card you entered has expired.'));
     form_set_error('cc_data][cc_exp_year', t('The credit card you entered has expired.'));
     $has_errors = TRUE;
   }
-  
+
   // Validate the issue number (if entered).  With issue numbers, '01' is
   // different from '1', but is_numeric() is still appropriate.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_issue_enabled', FALSE) && !_uc_credit_valid_card_issue($values['cc_data']['cc_issue'])) {
     form_set_error('cc_data][cc_issue', t('The issue number you entered is invalid.'));
     $has_errors = TRUE;
   }
 
   // Validate the CVV number if enabled.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_cvv_enabled', TRUE) && !_uc_credit_valid_cvv($values['cc_data']['cc_cvv'])) {
     form_set_error('cc_data][cc_cvv', t('You have entered an invalid CVV number.'));
     $has_errors = TRUE;
   }
 
   // Validate the bank name if enabled.
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_bank_enabled', FALSE) && empty($values['cc_data']['cc_bank'])) {
     form_set_error('cc_data][cc_bank', t('You must enter the issuing bank for that card.'));
     $has_errors = TRUE;
@@ -219,7 +226,10 @@ function uc_recurring_cybersource_update_form_submit(&$form, &$form_state) {
     foreach ($bill_changes as $key => $value) {
       if ($order->$key != $value) {
         if (!is_array($value)) {
-          $log[$key] = array('old' => $order->$key, 'new' => $value);
+          $log[$key] = array(
+            'old' => $order->$key,
+            'new' => $value,
+          );
         }
         $order->$key = $value;
       }
@@ -229,15 +239,18 @@ function uc_recurring_cybersource_update_form_submit(&$form, &$form_state) {
   $refs = array_keys($order->data['cc_txns']['references']);
   $subscription_id = end($refs);
   if ($message = _uc_recurring_uc_cybersource_update_paymentprofile($order, $subscription_id)) {
-    drupal_set_message(t('Account update failed: @error', array('@error' => $message)), 'error');
+    backdrop_set_message(t('Account update failed: @error', array('@error' => $message)), 'error');
     $form_state['redirect'] = FALSE;
   }
   else {
-    drupal_set_message(t('Account updated'));
+    backdrop_set_message(t('Account updated'));
     uc_order_save($order);
     $last4new = substr($order->payment_details['cc_number'], -4);
     if ($last4new != $last4old) {
-      $log[t('Credit card')] = array('old' => $last4old, 'new' => $last4new);
+      $log[t('Credit card')] = array(
+        'old' => $last4old,
+        'new' => $last4new,
+      );
     }
     if ($log) {
       uc_order_log_changes($order->order_id, $log);
@@ -249,14 +262,15 @@ function uc_recurring_cybersource_update_form_submit(&$form, &$form_state) {
  * Theme billing address form items
  */
 function theme_uc_recurring_cybersource_billto_form($form) {
+  // TODO: Should this theme uc_recurring_cybersource_billto_form be declared in hook_theme()?
   $output = '<table class="order-edit-table">';
   foreach (element_children($form) as $field) {
     $title = $form[$field]['#title'];
     $form[$field]['#title'] = NULL;
-    $output .= '<tr><td class="oet-label">'. $title .':</td><td>' . drupal_render($form[$field]) .'</td></tr>';
+    $output .= '<tr><td class="oet-label">' . $title . ':</td><td>' . backdrop_render($form[$field]) . '</td></tr>';
   }
   $output .= '</table>';
-  
+
   return $output;
 }
 
@@ -290,7 +304,7 @@ function _uc_recurring_uc_cybersource_update_paymentprofile($order, $subscriptio
   catch (SoapFault $exception) {
     // Log and display errors if Ubercart is unable to connect via SOAP.
     watchdog('uc_cybersource', 'Unable to connect to CyberSource via SOAP.', array(), WATCHDOG_ERROR);
-    drupal_set_message(t('We apologize for the delay, but we are unable to process your credit card at this time. Please <a href="!url">contact sales</a> to complete your order.', array('!url' => url('contact'))), 'error');
+    backdrop_set_message(t('We apologize for the delay, but we are unable to process your credit card at this time. Please <a href="!url">contact sales</a> to complete your order.', array('!url' => url('contact'))), 'error');
   }
 
   // Process a reply from CyberSource.
@@ -340,7 +354,7 @@ function uc_recurring_cybersource_profile_form($form, $form_state, $rfid) {
   catch (SoapFault $exception) {
     // Log and display errors if Ubercart is unable to connect via SOAP.
     watchdog('uc_cybersource', 'Unable to connect to CyberSource via SOAP.', array(), WATCHDOG_ERROR);
-    drupal_set_message(t('We apologize for the delay, but we are unable to process your credit card at this time. Please <a href="!url">contact sales</a> to complete your order.', array('!url' => url('contact'))), 'error');
+    backdrop_set_message(t('We apologize for the delay, but we are unable to process your credit card at this time. Please <a href="!url">contact sales</a> to complete your order.', array('!url' => url('contact'))), 'error');
   }
 
   if (isset($reply->paySubscriptionRetrieveReply)) {
@@ -362,7 +376,7 @@ function uc_recurring_cybersource_profile_form($form, $form_state, $rfid) {
     );
   }
   else {
-    drupal_set_message(t('Invalid response from SOAP server while retrieving subscription @subscription_id', array('@subscription_id' => $subscription_id)), 'error');
+    backdrop_set_message(t('Invalid response from SOAP server while retrieving subscription @subscription_id', array('@subscription_id' => $subscription_id)), 'error');
   }
   return $form;
 }
@@ -371,6 +385,7 @@ function uc_recurring_cybersource_profile_form($form, $form_state, $rfid) {
  * Get the WDSL URL used for SOAP requests
  */
 function _uc_recurring_cybersource_soap_wsdl_url() {
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_cybersource_server', 'test') == 'test') {
     return 'https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.38.wsdl';
   }
@@ -403,6 +418,7 @@ function _uc_recurring_cybersource_create_profile($order) {
     $request->paySubscriptionCreateService = $paySubscriptionCreateService;
 
     $purchaseTotals = new stdClass();
+    // TODO This variable was probably removed in Backdrop without replacement.
     $purchaseTotals->currency = variable_get('uc_cybersource_currency', 'usd');
     $request->purchaseTotals = $purchaseTotals;
 
@@ -414,7 +430,7 @@ function _uc_recurring_cybersource_create_profile($order) {
   catch (SoapFault $exception) {
     // Log and display errors if Ubercart is unable to connect via SOAP.
     watchdog('uc_cybersource', 'Unable to connect to CyberSource via SOAP.', array(), WATCHDOG_ERROR);
-    drupal_set_message(t('We apologize for the delay, but we are unable to process your credit card at this time. Please <a href="!url">contact sales</a> to complete your order.', array('!url' => url('contact'))), 'error');
+    backdrop_set_message(t('We apologize for the delay, but we are unable to process your credit card at this time. Please <a href="!url">contact sales</a> to complete your order.', array('!url' => url('contact'))), 'error');
   }
 
   if (isset($reply->paySubscriptionCreateReply)) {
@@ -470,6 +486,7 @@ function _uc_recurring_cybersource_card_obj($order) {
   $card->expirationMonth = $order->payment_details['cc_exp_month'];
   $card->expirationYear = $order->payment_details['cc_exp_year'];
   $card->cardType = _uc_cybersource_card_type($order->payment_details['cc_number']);
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_cvv_enabled', TRUE)) {
     $card->cvNumber = $order->payment_details['cc_cvv'];
   }

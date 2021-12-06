@@ -1,0 +1,18 @@
+[ucRecurringTestCase]
+name = ucRecurringTestCase
+description = ucRecurringTestCase
+group = uc_recurring
+file = uc_recurring.test
+
+[ucRecurringAPITestCase]
+name = API functions
+description = Setup recurring product and test the actions that can occur on a recurring payment.
+group = Ubercart recurring fees
+file = uc_recurring.test
+
+[ucRecurringIntegrationTestCase]
+name = Payment integration
+description = Test the API functionality to trigger recurring payments via a third party module.
+group = Ubercart recurring fees
+file = uc_recurring.test
+

@@ -1,7 +1,7 @@
 /**
  * Disable and enable fields in the recurring subscription form.
  */
-Drupal.behaviors.UcRecurringSubscriptionForm = function (context) {
+Backdrop.behaviors.UcRecurringSubscriptionForm = function (context) {
   $(".unlimited-checkbox").change(function() {
     var id = $(this).attr('id');
     text_id = id.replace('unlimited', 'number-intervals');

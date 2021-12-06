@@ -39,6 +39,17 @@ function uc_recurring_subscription_permission() {
 }
 
 /**
+ * Implements hook_config_info().
+ */
+function uc_recurring_subscription_config_info() {
+  $prefixes['uc_recurring_subscription.settings'] = array(
+    'label' => t('Recurring Payments API settings'),
+    'group' => t('Configuration'),
+  );
+  return $prefixes;
+}
+
+/**
  * Implements hook_menu().
  */
 function uc_recurring_subscription_menu() {
@@ -47,7 +58,7 @@ function uc_recurring_subscription_menu() {
   $items['admin/store/subscriptions'] = array(
     'title' => 'Subscription Manager',
     'description' => 'Manage recurring subscription products.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('uc_recurring_subscription_overview'),
     'access arguments' => array('manage subscriptions'),
     'file' => 'uc_recurring_subscription.admin.inc',
@@ -55,7 +66,7 @@ function uc_recurring_subscription_menu() {
   $items['admin/store/subscriptions/overview'] = array(
     'title' => 'Overview',
     'description' => 'Manage recurring subscription products.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('uc_recurring_subscription_overview'),
     'access arguments' => array('manage subscriptions'),
     'file' => 'uc_recurring_subscription.admin.inc',
@@ -64,7 +75,7 @@ function uc_recurring_subscription_menu() {
   $items['admin/store/subscriptions/create'] = array(
     'title' => 'Create Subscription',
     'description' => '.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('uc_recurring_subscription_product_form'),
     'access arguments' => array('manage subscriptions'),
     'file' => 'uc_recurring_subscription.admin.inc',
@@ -72,7 +83,7 @@ function uc_recurring_subscription_menu() {
   $items['admin/store/subscriptions/%/edit'] = array(
     'title' => 'Edit Subscription',
     'description' => '.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('uc_recurring_subscription_product_form', 3),
     'access arguments' => array('manage subscriptions'),
     'type' => MENU_CALLBACK,
@@ -81,7 +92,7 @@ function uc_recurring_subscription_menu() {
   $items['node/%/edit/subscription'] = array(
     'title' => 'Subscription',
     'description' => '.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('uc_recurring_subscription_product_form', 1),
     'access callback' => 'uc_product_edit_access',
     'access arguments' => array(1),
@@ -91,7 +102,7 @@ function uc_recurring_subscription_menu() {
   $items['admin/store/subscriptions/subscribers'] = array(
     'title' => 'Manage Subscribers',
     'description' => '.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('uc_recurring_subscription_subscriber_list'),
     'access arguments' => array('manage subscriptions'),
     'file' => 'uc_recurring_subscription.admin.inc',
@@ -99,7 +110,7 @@ function uc_recurring_subscription_menu() {
   $items['admin/store/subscriptions/settings'] = array(
     'title' => 'Subscription Settings',
     'description' => '.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('uc_recurring_subscription_settings_form'),
     'access arguments' => array('manage subscriptions'),
     'file' => 'uc_recurring_subscription.admin.inc',
@@ -113,7 +124,7 @@ function uc_recurring_subscription_menu() {
   );
 
   // override the ability to delete the subscription attribute
-  $items['admin/store/attributes/' . variable_get('uc_recurring_subscription_attribute', '') . '/delete'] = array(
+  $items['admin/store/attributes/' . config_get('uc_recurring_subscription.settings', 'uc_recurring_subscription_attribute') . '/delete'] = array(
     'title' => 'Delete operation not Availabe',
     'page callback' => 'uc_recurring_subscription_attribute_delete',
     'access arguments' => array('administer attributes'),
@@ -141,7 +152,7 @@ function uc_recurring_subscription_attribute_delete() {
 function uc_recurring_subscription_load($nid) {
   $subscription = db_query("SELECT * FROM {uc_recurring_subscription} WHERE nid = :nid", array(':nid' => $nid))->fetchObject();
   if (!empty($subscription)) {
-    $subscription->access = empty($subscription->access) ? array() : unserialize($subscription->access);
+    $subscription->access = empty($subscription->access)?array() : unserialize($subscription->access);
   }
   return $subscription;
 }
@@ -161,13 +172,13 @@ function uc_recurring_subscription_delete($nid) {
  * Implements hook_node_load().
  */
 function uc_recurring_subscription_node_load($nodes, $types) {
-  if (!in_array(variable_get('uc_recurring_subscription_product_class', 'uc_recurring_subscription'), $types)) {
+  if (!in_array(config_get('uc_recurring_subscription.settings', 'uc_recurring_subscription_product_class'), $types)) {
     return;
   }
   $result = db_query('SELECT * FROM {uc_recurring_subscription} WHERE nid IN(:nids)', array(':nids' => array_keys($nodes)));
   foreach ($result as $record) {
     $nodes[$record->nid]->subscription = $record;
-    $nodes[$record->nid]->subscription->access = empty($record->access) ? array() : unserialize($record->access);
+    $nodes[$record->nid]->subscription->access = empty($record->access)?array() : unserialize($record->access);
   }
 }
 
@@ -176,11 +187,11 @@ function uc_recurring_subscription_node_load($nodes, $types) {
  * this feature.
  */
 function _uc_recurring_subscription_get_product_features($product_id) {
-  $attribute = uc_attribute_load(variable_get('uc_recurring_subscription_attribute', ''), $product_id, 'product');
+  $attribute = uc_attribute_load(config_get('uc_recurring_subscription.settings', 'uc_recurring_subscription_attribute'), $product_id, 'product');
 
   $products = array();
   $result = db_query("SELECT p.pfid from {uc_recurring_product} p LEFT JOIN {uc_product_features} f ON p.pfid=f.pfid WHERE f.nid = :nid", array(':nid' => $product_id))->fetchAll();
-  
+
   foreach ($result as $p) {
     $product = uc_recurring_product_fee_load($p->pfid);
     $option_name = _uc_recurring_subscription_create_attribute_option($product->regular_interval_value, $product->regular_interval_unit);
@@ -203,7 +214,7 @@ function _uc_recurring_subscription_get_product_features($product_id) {
  *
  */
 function _uc_recurring_subscription_option($option_name) {
-  $attribute = uc_attribute_load(variable_get('uc_recurring_subscription_attribute', ''));
+  $attribute = uc_attribute_load(config_get('uc_recurring_subscription.settings', 'uc_recurring_subscription_attribute'));
   $option = _uc_recurring_subscription_attribute_option_by_name($attribute->aid, $option_name);
   return $option;
 }
@@ -249,9 +260,9 @@ function _uc_recurring_subscription_create_attribute_option($value, $interval) {
  */
 function _uc_recurring_subscription_attribute_option_by_name($aid, $name) {
   $option = db_query("SELECT * from {uc_attribute_options} WHERE aid = :aid AND name = :name", array(
-      ':aid' => $aid,
-      ':name' => $name,
-    ))->fetchObject();
+    ':aid' => $aid,
+    ':name' => $name,
+  ))->fetchObject();
   // If it doesn't exist we create it.
   if (empty($option)) {
     $option = new stdClass();
@@ -278,7 +289,7 @@ function _uc_recurring_subscription_product_feature_sort($a, $b) {
  * Implements hook_form_alter().
  */
 function uc_recurring_subscription_form_alter(&$form, $form_state, $form_id) {
-  $aid = variable_get('uc_recurring_subscription_attribute', '');
+  $aid = config_get('uc_recurring_subscription.settings', 'uc_recurring_subscription_attribute');
   if (isset($form['aid']) && $form['aid']['#value'] == $aid) {
     // Hide critical options from forum vocabulary.
     if ($form_id == 'uc_attribute_form') {
@@ -328,6 +339,7 @@ function uc_recurring_subscription_uc_recurring_access_apply($fee, $product) {
       $access->time_owed = 0;
     }
     $interval = $fee->next_charge - REQUEST_TIME;
+    // TODO This variable was probably removed in Backdrop without replacement.
     $access->time_applied += min($interval, variable_get('uc_recurring_access_interval', '31536000'));
     $access->time_owed += $interval;
     uc_recurring_access_user_save($access);

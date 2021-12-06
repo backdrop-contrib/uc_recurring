@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Implementation of hook_ca_entity().
+ * Implements hook_ca_entity().
  */
 function uc_recurring_subscription_ca_entity() {
   $entities = array();
@@ -15,7 +15,7 @@ function uc_recurring_subscription_ca_entity() {
 }
 
 /**
- * Implementation of hook_ca_condition().
+ * Implements hook_ca_condition().
  */
 function uc_recurring_subscription_ca_condition() {
   $condition = array();
@@ -23,7 +23,7 @@ function uc_recurring_subscription_ca_condition() {
 }
 
 /**
- * Implementation of hook_ca_action().
+ * Implements hook_ca_action().
  */
 function uc_recurring_subscription_ca_action() {
   // actions to grant/revoke role on user account.
@@ -80,7 +80,7 @@ function uc_recurring_subscription_ca_action() {
 }
 
 /**
- * Implementation of hook_ca_trigger().
+ * Implements hook_ca_trigger().
  */
 function uc_recurring_subscription_ca_trigger() {
   // use the existing uc_recurring triggers
@@ -89,7 +89,7 @@ function uc_recurring_subscription_ca_trigger() {
 }
 
 /**
- * Implementation of hook_ca_predicate().
+ * Implements hook_ca_predicate().
  */
 function uc_recurring_subscription_ca_predicate() {
   $predicates = array();
@@ -221,7 +221,7 @@ function uc_recurring_subscription_ca_predicate() {
             'group_option' => 'subscribe_grant_og',
             'groups' => array(),
           ),
-        )
+        ),
       ),
     );
 
@@ -248,7 +248,7 @@ function uc_recurring_subscription_ca_predicate() {
             'group_option' => '',
             'groups' => array(),
           ),
-        )
+        ),
       ),
     );
 
@@ -275,10 +275,10 @@ function uc_recurring_subscription_ca_predicate() {
             'group_option' => 'expire_revoke_og',
             'groups' => array(),
           ),
-        )
+        ),
       ),
     );
-  };
+  }
 
   return $predicates;
 }
@@ -315,7 +315,7 @@ function uc_recurring_subscription_action_grant_role($order, $settings) {
  * Grant role CA form.
  */
 function uc_recurring_subscription_action_grant_role_form($form_state, $settings = array()) {
-  drupal_add_css(drupal_get_path('module', 'uc_recurring_subscription') . '/uc_recurring_subscription.css');
+  backdrop_add_css(backdrop_get_path('module', 'uc_recurring_subscription') . '/uc_recurring_subscription.css');
   $form['role_option'] = array(
     '#type' => 'radios',
     '#title' => t('Where are the role(s) defined?'),
@@ -330,7 +330,7 @@ function uc_recurring_subscription_action_grant_role_form($form_state, $settings
   );
 
   $roles = user_roles(TRUE);
-  unset($roles[DRUPAL_AUTHENTICATED_RID]);
+  unset($roles[BACKDROP_AUTHENTICATED_RID]);
   if (empty($roles)) {
     $form['role_error'] = array(
       '#value' => t('There are no roles available to select. <a href="!url">Add a role</a>.', array('!url' => url('admin/user/roles'))),
@@ -401,7 +401,7 @@ function uc_recurring_subscription_action_revoke_role_form($form_state, $setting
  * Grant Organic Group CA form.
  */
 function uc_recurring_subscription_action_grant_og_form($form_state, $settings = array()) {
-  drupal_add_css(drupal_get_path('module', 'uc_recurring_subscription') .'/uc_recurring_subscription.css');
+  backdrop_add_css(backdrop_get_path('module', 'uc_recurring_subscription') . '/uc_recurring_subscription.css');
   $form['group_option'] = array(
     '#type' => 'radios',
     '#title' => t('Where are the groups(s) defined?'),

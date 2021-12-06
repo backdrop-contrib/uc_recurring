@@ -19,7 +19,7 @@ function uc_recurring_subscription_requirements($phase) {
         'title' => $t('Subscription Manager'),
         'value' => $t('Need a newer version of Ubercart.'),
         'severity' => REQUIREMENT_ERROR,
-        'description' => $t('This module requires a newer version of ubercart, read the <a href="@readme">README.txt</a>', array('@readme' => url(drupal_get_path('module', 'uc_recurring_subscription') .'/README.txt'))),
+        'description' => $t('This module requires a newer version of ubercart, read the <a href="@readme">README.txt</a>', array('@readme' => url(backdrop_get_path('module', 'uc_recurring_subscription') . '/README.txt'))),
       );
     }
   }
@@ -41,12 +41,12 @@ function uc_recurring_subscription_schema() {
         'default' => 0,
       ),
       'access' => array(
-        'description' => 'Serialized list of drupal roles that should be applied on this subscription.',
+        'description' => 'Serialized list of backdrop roles that should be applied on this subscription.',
         'type' => 'text',
         'serialize' => TRUE,
       ),
       'ca' => array(
-        'description' => 'Serialized list of drupal CA events to tie to this subscription.',
+        'description' => 'Serialized list of backdrop CA events to tie to this subscription.',
         'type' => 'text',
         'serialize' => TRUE,
       ),
@@ -74,8 +74,8 @@ function uc_recurring_subscription_schema() {
  * Implements hook_uninstall().
  */
 function uc_recurring_subscription_uninstall() {
-  variable_del('uc_recurring_subscription_product_class');
-  variable_del('uc_recurring_subscription_attribute');
+  config_clear('uc_recurring_subscription.settings', 'uc_recurring_subscription_product_class');
+  config_clear('uc_recurring_subscription.settings', 'uc_recurring_subscription_attribute');
 }
 
 /**
@@ -87,17 +87,19 @@ function uc_recurring_subscription_enable() {
   if (db_query("SELECT COUNT(*) FROM {uc_product_classes} WHERE pcid = :pcid", array(':pcid' => $pcid))->fetchField() < 1) {
     db_insert('uc_product_classes')
       ->fields(array(
-        'pcid' => $pcid,
-        'name' => 'Recurring Subscription',
-        'description' => 'A recurring subscription product used by the recurring subscription ui module to manage your subscription products',
-      ))
+      'pcid' => $pcid,
+      'name' => 'Recurring Subscription',
+      'description' => 'A recurring subscription product used by the recurring subscription ui module to manage your subscription products',
+    ))
       ->execute();
     uc_product_node_info(TRUE);
     node_types_rebuild();
     menu_rebuild();
   }
+  // TODO This variable was probably removed in Backdrop without replacement.
+  // TODO This variable was probably removed in Backdrop without replacement.
   variable_set('node_options_' . $pcid, variable_get('node_options_product', array('status', 'promote')));
-  variable_set('uc_recurring_subscription_product_class', $pcid);
+  config_set('uc_recurring_subscription.settings', 'uc_recurring_subscription_product_class', $pcid);
 
   $attribute = new stdClass(); //@todo. There is something incorrect here because if you uninstall and reinstall, you get duplicate entries in the db.
   $attribute->name = 'uc_recurring_subscription_payment_options';
@@ -108,12 +110,35 @@ function uc_recurring_subscription_enable() {
   $attribute->description = 'The subscription payment options';
   uc_attribute_save($attribute);
   uc_attribute_subject_save($attribute, 'class', 'uc_recurring_subscription');
-  variable_set('uc_recurring_subscription_attribute', $attribute->aid);
+  config_set('uc_recurring_subscription.settings', 'uc_recurring_subscription_attribute', $attribute->aid);
+}
+
+// TODO The old hook_update_N functions cannot be applied to Backdrop.
+function uc_recurring_subscription_update_6000() { }
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function uc_recurring_subscription_update_last_removed() {
+  return 6000;
 }
 
 /**
- * Rename the 'roles' column to 'access' in {uc_recurring_subscription}.
+ * Migrate uc_recurring_subscription variables to config.
  */
-function uc_recurring_subscription_update_6000() {
-  db_change_field('uc_recurring_subscription', 'roles', 'access', array('type' => 'text', 'serialize' => TRUE));
+function uc_recurring_subscription_update_1000() {
+  $config = config('uc_recurring_subscription.settings');
+  $config->set('uc_recurring_subscription_product_class', update_variable_get('uc_recurring_subscription_product_class', 'uc_recurring_subscription'));
+  $config->set('uc_recurring_subscription_attribute', update_variable_get('uc_recurring_subscription_attribute', ''));
+  $config->save();
+
+  update_variable_del('uc_recurring_subscription_product_class');
+  update_variable_del('uc_recurring_subscription_attribute');
+}
+
+/**
+ * Implements hook_install().
+ */
+function uc_recurring_subscription_install() {
+  // Dynamically generated variable data was detected.
 }

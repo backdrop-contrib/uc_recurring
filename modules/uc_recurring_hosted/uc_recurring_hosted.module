@@ -11,7 +11,7 @@ define('UC_PAYPAL_RECURRING_API', '63.0');
 define('UC_RECURRING_FEE_STATUS_SUSPENDED_NOPROFILE', 20);
 
 /******************************************************************************
- * DRUPAL HOOKS
+ * BACKDROP HOOKS
  *****************************************************************************/
 
 /**
@@ -77,6 +77,7 @@ function uc_recurring_hosted_recurring_info() {
     'own handler' => TRUE,
   );
 
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_authnet_arb_mode', 'disabled') != 'disabled') {
     $items['authorizenet'] = $items['authorizenet_arb'];
   }
@@ -155,7 +156,7 @@ function uc_recurring_hosted_subscription_load($id, $type = 'rfid') {
     $return = db_query("SELECT * FROM {uc_recurring_hosted} WHERE subscription_id = :subscription_id", array(':subscription_id' => $id));
   }
 
-  drupal_alter('uc_recurring_hosted_subscription', $object);
+  backdrop_alter('uc_recurring_hosted_subscription', $object);
 
   return $return->fetchObject();
 }
@@ -172,7 +173,7 @@ function uc_recurring_hosted_subscription_save($rfid, $subscription_id) {
   $object->subscription_id = $subscription_id;
 
   module_invoke_all('uc_recurring_hosted_subscription_save', $object);
-  drupal_write_record('uc_recurring_hosted', $object);
+  backdrop_write_record('uc_recurring_hosted', $object);
 }
 
 /**
@@ -279,6 +280,7 @@ function uc_recurring_hosted_authorizenet_arb_process($order, &$fee) {
   // We can't just call the existing arb function in ubercart as that would try
   // and setup thing that uc_recurring does now for all recurring fees.
   // return uc_authorizenet_arb_create($order, $fee);
+  // TODO This variable was probably removed in Backdrop without replacement.
   $server = variable_get('uc_authnet_arb_mode', 'disabled');
 
   // Setup variables for the payment schedule.
@@ -373,7 +375,7 @@ function uc_recurring_hosted_authorizenet_arb_process($order, &$fee) {
     );
   }
 
-  drupal_alter('uc_recurring_hosted_arb_process', $data, $fee, $order);
+  backdrop_alter('uc_recurring_hosted_arb_process', $data, $fee, $order);
 
   // Build the XML string.
   $xml = _uc_authorizenet_xml_api_wrapper('ARBCreateSubscriptionRequest', _uc_authorizenet_array_to_xml($data));
@@ -437,6 +439,7 @@ function uc_recurring_hosted_uc_auth_arb_payment($post) {
     uc_recurring_renew($fee);
 
     // Log the ARB payment if enabled.
+    // TODO This variable was probably removed in Backdrop without replacement.
     if (variable_get('uc_authnet_report_arb_post', FALSE)) {
       watchdog('uc_authorizenet', 'ARB payment reported for order @order_id: <pre>@post</pre>', array('@order_id' => $fee->order_id, '@post' => print_r($post, TRUE)));
     }
@@ -454,6 +457,7 @@ function uc_recurring_hosted_uc_auth_arb_payment($post) {
  *   TRUE if recurring fee was cancelled.
  */
 function uc_recurring_hosted_authorizenet_arb_cancel($order, $fee) {
+  // TODO This variable was probably removed in Backdrop without replacement.
   $server = variable_get('uc_authnet_arb_mode', 'disabled');
 
   $order = uc_order_load($order->order_id);
@@ -541,11 +545,11 @@ function uc_recurring_hosted_authorizenet_arb_update_form_submit(&$form, &$form_
   );
 
   if (uc_authorizenet_arb_update($subscription_id, $updates, $order->order_id)) {
-    drupal_set_message(t('Account updated.'));
+    backdrop_set_message(t('Account updated.'));
     $form_state['redirect'] = 'user/' . $form_state['values']['uid'];
   }
   else {
-    drupal_set_message(t('Account update failed.'), 'error');
+    backdrop_set_message(t('Account update failed.'), 'error');
   }
 }
 
@@ -578,7 +582,7 @@ function uc_recurring_hosted_paypal_wps_process($order, &$fee) {
  */
 function uc_recurring_hosted_form_uc_paypal_wps_form_alter(&$form, $form_state) {
   $order = $form_state['build_info']['args'][0];
-  
+
   $recurring_fees = array();
   // if recurring fees exist in the order
   if (module_exists('uc_recurring_product')) {
@@ -591,13 +595,14 @@ function uc_recurring_hosted_form_uc_paypal_wps_form_alter(&$form, $form_state) 
     // we will just process the first for now
     $recurring_fee = $recurring_fees[0];
     if (count($recurring_fees) > 1) {
-      drupal_set_message(t('Sorry recurring payments can only be setup for one product at a time when paying via paypal, only the first recurring payment will be setup when you click on Submit order.'), 'warning');
+      backdrop_set_message(t('Sorry recurring payments can only be setup for one product at a time when paying via paypal, only the first recurring payment will be setup when you click on Submit order.'), 'warning');
     }
 
     // IPN control notify URL
     $data['notify_url'] = url('uc_recurring_hosted/paypal/ipn/' . $order->order_id, array('absolute' => TRUE));
 
     $data['cmd'] = '_xclick-subscriptions';
+    // TODO This variable was probably removed in Backdrop without replacement.
     $data['item_name'] = t('Order @order_id at !store', array('@order_id' => $order->order_id, '!store' => variable_get('uc_store_name', url('<front>', array('absolute' => TRUE)))));
     // first payment
     list($p, $t) = explode(' ', $recurring_fee['recurring product']->initial_charge);
@@ -635,7 +640,8 @@ function uc_recurring_hosted_paypal_cancel_form($form_state, $rfid) {
   $form['message'] = array(
     '#markup' => t('You can cancel your subscription from your paypal account, see <a href="@link">here</a> for instructions.',
       array('@link' => 'https://www.paypal.com/webapps/helpcenter/article/?currentIssueID=59055&m=SRE')
-  ));
+  ),
+  );
   return $form;
 }
 
@@ -737,13 +743,14 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
   if (empty($cc_type)) {
     $cc_type = _uc_paypal_card_type($order->payment_details['cc_number']);
     if ($cc_type === FALSE) {
-      drupal_set_message(t('The credit card type did not pass validation.'), 'error');
+      backdrop_set_message(t('The credit card type did not pass validation.'), 'error');
       watchdog('uc_recurring', 'Could not figure out credit card type @type', array('@type' => $order->payment_details['cc_type']), WATCHDOG_ERROR);
       return FALSE;
     }
   }
   // Build an NVP request.
   // @link https://cms.paypal.com/us/cgi-bin/?&cmd=_render-content&content_ID=developer/e_howto_api_WPRecurringPayments @endlink
+  // TODO This variable was probably removed in Backdrop without replacement.
   $nvp_request = array(
     // Set the version required for recurring payments.
     'VERSION' => UC_PAYPAL_RECURRING_API,
@@ -767,6 +774,7 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
     'MAXFAILEDPAYMENTS' => 1,
   );
 
+  // TODO This variable was probably removed in Backdrop without replacement.
   $nvp_request['CURRENCYCODE'] = variable_get('uc_paypal_wpp_currency', 'USD');
 
   // Add optional NVP request parameters.
@@ -815,11 +823,13 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
     $nvp_request['TRIALAMT'] = 0;
   }
 
+  // TODO This variable was probably removed in Backdrop without replacement.
   if (variable_get('uc_credit_cvv_enabled', TRUE)) {
     $nvp_request['CVV2'] = $order->payment_details['cc_cvv'];
   }
 
   // Post the request, and parse the response.
+  // TODO This variable was probably removed in Backdrop without replacement.
   $nvp_response = uc_paypal_api_request($nvp_request, variable_get('uc_paypal_wpp_server', 'https://api-3t.sandbox.paypal.com/nvp'));
   $types = uc_credit_transaction_types();
 
@@ -948,6 +958,7 @@ function uc_recurring_hosted_paypal_wpp_cancel($fee) {
   );
 
   // Post the request, and parse the response.
+  // TODO This variable was probably removed in Backdrop without replacement.
   $nvp_response = uc_paypal_api_request($nvp_request, variable_get('uc_paypal_wpp_server', 'https://api-3t.sandbox.paypal.com/nvp'), UC_PAYPAL_RECURRING_API);
 
   if ($nvp_response['ACK'] != 'Success' && $nvp_response['ACK'] != 'SuccessWithWarning') {
@@ -981,6 +992,7 @@ function uc_recurring_hosted_paypal_wpp_get_profile($rfid) {
   );
 
   // Post the request, and parse the response.
+  // TODO This variable was probably removed in Backdrop without replacement.
   $nvp_response = uc_paypal_api_request($nvp_request, variable_get('uc_paypal_wpp_server', 'https://api-3t.sandbox.paypal.com/nvp'), UC_PAYPAL_RECURRING_API);
 
   if ($nvp_response['ACK'] != 'Success' && $nvp_response['ACK'] != 'SuccessWithWarning') {
@@ -1139,7 +1151,7 @@ function uc_recurring_hosted_paypal_wpp_update_form_submit($form, $form_state) {
   if (empty($cc_type)) {
     $cc_type = _uc_paypal_card_type($order->payment_details['cc_number']);
     if ($cc_type === FALSE) {
-      drupal_set_message(t('The credit card type did not pass validation.'), 'error');
+      backdrop_set_message(t('The credit card type did not pass validation.'), 'error');
       watchdog('uc_recurring', 'Could not figure out credit card type @type', array('@type' => $order->payment_details['cc_type']), WATCHDOG_ERROR);
       return FALSE;
     }
@@ -1189,11 +1201,11 @@ function uc_recurring_hosted_paypal_wpp_update_form_submit($form, $form_state) {
   }
 
   if ($message = uc_recurring_hosted_paypal_wpp_update($order, $fee, $nvp_request)) {
-    drupal_set_message(t('Your account has been updated successfully.'));
+    backdrop_set_message(t('Your account has been updated successfully.'));
     $form_state['redirect'] = 'user/' . $form_state['values']['uid'];
   }
   else {
-    drupal_set_message(t('Your account failed to update due to an error with your card information.  Please try again or contact us for assistance.'), 'error');
+    backdrop_set_message(t('Your account failed to update due to an error with your card information.  Please try again or contact us for assistance.'), 'error');
   }
 }
 
@@ -1226,6 +1238,7 @@ function uc_recurring_hosted_paypal_wpp_update($order, $fee, $updates = array())
   ) + $updates;
 
   // Post the request, and parse the response.
+  // TODO This variable was probably removed in Backdrop without replacement.
   $nvp_response = uc_paypal_api_request($nvp_request, variable_get('uc_paypal_wpp_server', 'https://api-3t.sandbox.paypal.com/nvp'), UC_PAYPAL_RECURRING_API);
 
   if ($nvp_response['ACK'] != 'Success' && $nvp_response['ACK'] != 'SuccessWithWarning') {
@@ -1392,6 +1405,14 @@ function uc_recurring_hosted_paypal_wpp_profile_creation_form_submit($form, &$fo
     $form_state['redirect'] = 'user/' . $order->uid . '/recurring/create/complete';
   }
   else {
-    drupal_set_message(t('Recurring fee was not processed successfully. Please try again or contact customer service.'), 'error');
+    backdrop_set_message(t('Recurring fee was not processed successfully. Please try again or contact customer service.'), 'error');
   }
+}
+
+/**
+ * Implements hook_autoload_info().
+ */
+function uc_recurring_hosted_autoload_info() {
+  return array(
+  );
 }

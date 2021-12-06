@@ -2,7 +2,7 @@
 /**
  * Disable and enable fields in the recurring fee feature form.
  */
-Drupal.behaviors.UcRecurringFeatureFrom = function (context) {
+Backdrop.behaviors.UcRecurringFeatureFrom = function (context) {
   // Toggle the fee amount field according to "Set the recurring fee amount as
   // Selling price field state.
   $("#edit-fee-same-product").click(function() {

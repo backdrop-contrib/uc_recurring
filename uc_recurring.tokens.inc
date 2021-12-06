@@ -93,7 +93,7 @@ function uc_recurring_tokens($type, $tokens, $data = array(), $options = array()
           break;
 
         case 'fee-title':
-          $replacements[$original] = $sanitize ? check_plain($fee->fee_title) : $fee->fee_title;
+          $replacements[$original] = $sanitize?check_plain($fee->fee_title) : $fee->fee_title;
           break;
 
         case 'charged-intervals':
@@ -101,7 +101,7 @@ function uc_recurring_tokens($type, $tokens, $data = array(), $options = array()
           break;
 
         case 'remaining-intervals':
-          $replacements[$original] = $fee->remaining_intervals < 0 ? t('Until cancelled') : $fee->remaining_intervals;
+          $replacements[$original] = $fee->remaining_intervals < 0?t('Until cancelled') : $fee->remaining_intervals;
           break;
 
         case 'renewal-attempts':

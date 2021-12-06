@@ -1,0 +1,10 @@
+{
+    "_config_name": "uc_recurring.settings",
+    "uc_recurring_payment_methods": [],
+    "uc_recurring_checkout_message": "",
+    "uc_recurring_trigger_renewals": true,
+    "uc_recurring_checkout_process": true,
+    "uc_recurring_checkout_fail": "fail",
+    "uc_recurring_handler": "uc_recurring",
+    "uc_recurring_cron_timeout": "30"
+}

@@ -7,7 +7,7 @@
  */
 
 /**
- * Implementation of hook_views_data().
+ * Implements hook_views_data().
  */
 function uc_recurring_views_data() {
   $data = array(
@@ -186,12 +186,12 @@ function uc_recurring_views_data() {
 }
 
 /**
- * Implement hook_views_handlers().
+ * Implements hook_views_handlers().
  */
 function uc_recurring_views_handlers() {
   return array(
     'info' => array(
-      'path' => drupal_get_path('module', 'uc_recurring') . '/views',
+      'path' => backdrop_get_path('module', 'uc_recurring') . '/views',
     ),
     'handlers' => array(
       /**** Fields ****/

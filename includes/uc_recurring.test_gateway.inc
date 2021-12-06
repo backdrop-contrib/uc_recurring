@@ -50,6 +50,7 @@ function uc_recurring_test_gateway_process($order, &$fee) {
   if ($key = uc_credit_encryption_key()) {
     $crypt = new UbercartEncryption();
     $data['payment_details']['cc_number'] = $crypt->encrypt($key, $data['payment_details']['cc_number'], 32);
+    // TODO This variable was probably removed in Backdrop without replacement.
     if (variable_get('uc_credit_debug', FALSE)) {
       $data['payment_details']['cc_cvv'] = $crypt->encrypt($key, $data['payment_details']['cc_cvv'], 32);
     }
@@ -74,6 +75,7 @@ function uc_recurring_test_gateway_renew($order, &$fee) {
   if ($key = uc_credit_encryption_key()) {
     $crypt = new UbercartEncryption();
     $fee->data['payment_details']['cc_number'] = $crypt->decrypt($key, $fee->data['payment_details']['cc_number']);
+    // TODO This variable was probably removed in Backdrop without replacement.
     if (variable_get('uc_credit_debug', FALSE)) {
       $fee->data['payment_details']['cc_cvv'] = $crypt->decrypt($key, $fee->data['payment_details']['cc_cvv']);
     }

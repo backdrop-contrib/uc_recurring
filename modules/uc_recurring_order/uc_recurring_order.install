@@ -6,12 +6,32 @@
  *
  */
 
+// TODO The old hook_update_N functions cannot be applied to Backdrop.
+function uc_recurring_order_update_6000() { }
+
 /**
- * Remove variables that are just holding strings, if you want to edit strings
- * then there are better ways then via variables.
+ * Implements hook_update_last_removed().
  */
-function uc_recurring_order_update_6000() {
-  variable_del('uc_recurring_pane_description');
-  variable_del('uc_recurring_pane_order_pane_title');
-  variable_del('uc_recurring_pane_order_pane_empty');
+function uc_recurring_order_update_last_removed() {
+  return 6000;
+}
+
+/**
+ * Migrate uc_recurring_order variables to config.
+ */
+function uc_recurring_order_update_1000() {
+  $config = config('uc_recurring_order.settings');
+  $config->set('uc_recurring_order_interval_options', update_variable_get('uc_recurring_order_interval_options', array()));
+  $config->set('uc_recurring_order_enabled', update_variable_get('uc_recurring_order_enabled', TRUE));
+  $config->save();
+
+  update_variable_del('uc_recurring_order_interval_options');
+  update_variable_del('uc_recurring_order_enabled');
+}
+
+/**
+ * Implements hook_install().
+ */
+function uc_recurring_order_install() {
+  // Dynamically generated variable data was detected.
 }
