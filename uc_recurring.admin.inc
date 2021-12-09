@@ -193,18 +193,14 @@ function uc_recurring_admin_edit_form($form, $form_state, $rfid, $fee_handler) {
       '#options' => uc_recurring_fee_status_label(),
     );
 
-    // TODO This variable was probably removed in Backdrop without replacement.
-    // TODO This variable was probably removed in Backdrop without replacement.
-    // TODO This variable was probably removed in Backdrop without replacement.
-    // TODO This variable was probably removed in Backdrop without replacement.
     $form['fee_amount'] = array(
       '#type' => 'textfield',
       '#title' => t('Recurring fee amount'),
       '#description' => t('Charge this amount each billing period.'),
       '#default_value' => $fee->fee_amount,
       '#size' => 16,
-      '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),
-      '#field_suffix' => variable_get('uc_sign_after_amount', FALSE)?variable_get('uc_currency_sign', '$') : '',
+      '#field_prefix' => config_get('uc_store.settings', 'uc_sign_after_amount') ? '' : config_get('uc_store.settings', 'uc_currency_sign'),
+      '#field_suffix' => config_get('uc_store.settings', 'uc_sign_after_amount') ? config_get('uc_store.settings', 'uc_currency_sign') : '',
     );
 
     $form['num_interval'] = array(
@@ -593,8 +589,7 @@ function uc_recurring_order_admin($condition = NULL, $search = FALSE) {
     ),
   );
 
-  // TODO This variable was probably removed in Backdrop without replacement.
-  $address = variable_get('uc_customer_list_address', 'billing') == 'shipping' ? 'delivery' : 'billing';
+  $address = config_get('uc_store.settings', 'uc_customer_list_address') == 'shipping' ? 'delivery' : 'billing';
 
   $query = db_select('uc_orders', 'o')
     ->fields('o', array(
@@ -623,10 +618,9 @@ function uc_recurring_order_admin($condition = NULL, $search = FALSE) {
     }
   }
 
-  // TODO This variable was probably removed in Backdrop without replacement.
   $query = $query->extend('PagerDefault')->extend('TableSort')
     ->orderByHeader($header)
-    ->limit(variable_get('uc_order_number_displayed', 30));
+    ->limit(30);
 
   $rows = array();
 

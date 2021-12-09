@@ -17,9 +17,8 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
     $order_id = $ipn->rp_invoice_id;
   }
 
-  // TODO This variable was probably removed in Backdrop without replacement.
   watchdog('uc_recurring_hosted', 'Receiving recurring IPN at URL for order @order_id. !debug',
-    array('@order_id' => $order_id, '!debug' => variable_get('uc_paypal_wps_debug_ipn', FALSE) ? '<pre>' . check_plain(print_r($_POST, TRUE)) . '</pre>' : ''));
+    array('@order_id' => $order_id, '!debug' => config_get('uc_paypal.settings', 'uc_paypal_wps_debug_ipn') ? '<pre>' . check_plain(print_r($_POST, TRUE)) . '</pre>' : ''));
 
   $order = _uc_recurring_hosted_paypal_ipn_order($ipn);
 
@@ -31,8 +30,7 @@ function uc_recurring_hosted_paypal_ipn($order_id = NULL) {
   $ipn->order_id = $order->order_id;
 
   // Log the IPN against the actual order if debug enabled.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_paypal_wps_debug_ipn', FALSE)) {
+  if (config_get('uc_paypal.settings', 'uc_paypal_wps_debug_ipn')) {
     uc_order_log_changes($order->order_id, array('<pre>' . print_r($ipn, TRUE) . '</pre>'));
   }
 
@@ -190,9 +188,8 @@ function _uc_recurring_hosted_paypal_ipn_payment($ipn) {
       break;
 
     default:
-      // TODO This variable was probably removed in Backdrop without replacement.
       watchdog('uc_recurring_hosted', 'Payment status @status not recognized.  Nothing to do. !debug',
-        array('@status' => $ipn->payment_status, '!debug' => variable_get('uc_paypal_wps_debug_ipn', FALSE) ? '<pre>' . check_plain(print_r($_POST, TRUE)) . '</pre>' : ''));
+        array('@status' => $ipn->payment_status, '!debug' => config_get('uc_paypal.settings', 'uc_paypal_wps_debug_ipn') ? '<pre>' . check_plain(print_r($_POST, TRUE)) . '</pre>' : ''));
       break;
   }
 }
@@ -252,13 +249,11 @@ function _uc_recurring_hosted_paypal_ipn_validate($ipn) {
 
   $req .= 'cmd=_notify-validate';
 
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_paypal_wpp_server', '') == 'https://api-3t.paypal.com/nvp') {
+  if (config_get('uc_paypal.settings', 'uc_paypal_wpp_server') == 'https://api-3t.paypal.com/nvp') {
     $host = 'https://www.paypal.com/cgi-bin/webscr';
   }
   else {
-    // TODO This variable was probably removed in Backdrop without replacement.
-    $host = variable_get('uc_paypal_wps_server', 'https://www.sandbox.paypal.com/cgi-bin/webscr');
+    $host = config_get('uc_paypal.settings', 'uc_paypal_wps_server');
   }
   $response = backdrop_http_request($host, array(
     'headers' => array(),

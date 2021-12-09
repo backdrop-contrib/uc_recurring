@@ -339,8 +339,7 @@ function uc_recurring_subscription_uc_recurring_access_apply($fee, $product) {
       $access->time_owed = 0;
     }
     $interval = $fee->next_charge - REQUEST_TIME;
-    // TODO This variable was probably removed in Backdrop without replacement.
-    $access->time_applied += min($interval, variable_get('uc_recurring_access_interval', '31536000'));
+    $access->time_applied += min($interval, config_get('uc_recurring.settings', 'uc_recurring_access_interval'));
     $access->time_owed += $interval;
     uc_recurring_access_user_save($access);
     uc_order_comment_save($fee->order_id, $user->uid, t('Applied recurring access to role id: @role.', array('@role' => $rid)));

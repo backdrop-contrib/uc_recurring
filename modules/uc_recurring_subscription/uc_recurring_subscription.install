@@ -96,9 +96,10 @@ function uc_recurring_subscription_enable() {
     node_types_rebuild();
     menu_rebuild();
   }
+
   // TODO This variable was probably removed in Backdrop without replacement.
   // TODO This variable was probably removed in Backdrop without replacement.
-  variable_set('node_options_' . $pcid, variable_get('node_options_product', array('status', 'promote')));
+//  variable_set('node_options_' . $pcid, variable_get('node_options_product', array('status', 'promote')));
   config_set('uc_recurring_subscription.settings', 'uc_recurring_subscription_product_class', $pcid);
 
   $attribute = new stdClass(); //@todo. There is something incorrect here because if you uninstall and reinstall, you get duplicate entries in the db.
@@ -112,9 +113,6 @@ function uc_recurring_subscription_enable() {
   uc_attribute_subject_save($attribute, 'class', 'uc_recurring_subscription');
   config_set('uc_recurring_subscription.settings', 'uc_recurring_subscription_attribute', $attribute->aid);
 }
-
-// TODO The old hook_update_N functions cannot be applied to Backdrop.
-function uc_recurring_subscription_update_6000() { }
 
 /**
  * Implements hook_update_last_removed().
@@ -134,11 +132,4 @@ function uc_recurring_subscription_update_1000() {
 
   update_variable_del('uc_recurring_subscription_product_class');
   update_variable_del('uc_recurring_subscription_attribute');
-}
-
-/**
- * Implements hook_install().
- */
-function uc_recurring_subscription_install() {
-  // Dynamically generated variable data was detected.
 }

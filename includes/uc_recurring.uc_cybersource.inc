@@ -50,8 +50,7 @@ function uc_recurring_uc_cybersource_recurring_info() {
  */
 function uc_recurring_cybersource_process($order, &$fee) {
   $fee->fee_handler = 'cybersource';
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_cybersource_soap_create_profile', FALSE) == FALSE) {
+  if (config_get('uc_cybersource.settings', 'uc_cybersource_soap_create_profile') == FALSE) {
     // The uc_cybersource module doesn't yet support UC_CREDIT_REFERENCE_SET
     return _uc_recurring_cybersource_create_profile($order);
   }
@@ -148,15 +147,13 @@ function uc_recurring_cybersource_update_form_validate(&$form, &$form_state) {
   $values = $form_state['values'];
 
   // Make sure an owner value was entered.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_credit_owner_enabled', FALSE) && empty($values['cc_data']['cc_owner'])) {
+  if (config_get('uc_credit.settings', 'uc_credit_owner_enabled') && empty($values['cc_data']['cc_owner'])) {
     form_set_error('cc_data][cc_owner', t('Enter the owner name as it appears on the card.'));
     $has_errors = TRUE;
   }
 
   // Validate the CC number if that's turned on/check for non-digits.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_credit_validate_numbers', TRUE)) {
+  if (config_get('uc_credit.settings', 'uc_credit_validate_numbers')) {
     // Remove the non-numeric characters
     $cc_number = preg_replace('/[^0-9]/', '', $values['cc_data']['cc_number']);
     form_set_value($form['cc_data']['cc_number'], $cc_number, $form_state);
@@ -167,8 +164,7 @@ function uc_recurring_cybersource_update_form_validate(&$form, &$form_state) {
   }
 
   // Validate the start date (if entered).
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_credit_start_enabled', FALSE) && !_uc_credit_valid_card_start($values['cc_data']['cc_start_month'], $values['cc_data']['cc_start_year'])) {
+  if (config_get('uc_credit.settings', 'uc_credit_start_enabled') && !_uc_credit_valid_card_start($values['cc_data']['cc_start_month'], $values['cc_data']['cc_start_year'])) {
     form_set_error('cc_data][cc_start_month', t('The start date you entered is invalid.'));
     form_set_error('cc_data][cc_start_year', t('The start date you entered is invalid.'));
     $has_errors = TRUE;
@@ -183,22 +179,19 @@ function uc_recurring_cybersource_update_form_validate(&$form, &$form_state) {
 
   // Validate the issue number (if entered).  With issue numbers, '01' is
   // different from '1', but is_numeric() is still appropriate.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_credit_issue_enabled', FALSE) && !_uc_credit_valid_card_issue($values['cc_data']['cc_issue'])) {
+  if (config_get('uc_credit.settings', 'uc_credit_issue_enabled') && !_uc_credit_valid_card_issue($values['cc_data']['cc_issue'])) {
     form_set_error('cc_data][cc_issue', t('The issue number you entered is invalid.'));
     $has_errors = TRUE;
   }
 
   // Validate the CVV number if enabled.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_credit_cvv_enabled', TRUE) && !_uc_credit_valid_cvv($values['cc_data']['cc_cvv'])) {
+  if (config_get('uc_credit.settings', 'uc_credit_cvv_enabled') && !_uc_credit_valid_cvv($values['cc_data']['cc_cvv'])) {
     form_set_error('cc_data][cc_cvv', t('You have entered an invalid CVV number.'));
     $has_errors = TRUE;
   }
 
   // Validate the bank name if enabled.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_credit_bank_enabled', FALSE) && empty($values['cc_data']['cc_bank'])) {
+  if (config_get('uc_credit.settings', 'uc_credit_bank_enabled') && empty($values['cc_data']['cc_bank'])) {
     form_set_error('cc_data][cc_bank', t('You must enter the issuing bank for that card.'));
     $has_errors = TRUE;
   }
@@ -385,8 +378,7 @@ function uc_recurring_cybersource_profile_form($form, $form_state, $rfid) {
  * Get the WDSL URL used for SOAP requests
  */
 function _uc_recurring_cybersource_soap_wsdl_url() {
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_cybersource_server', 'test') == 'test') {
+  if (config_get('uc_cybersource.settings', 'uc_cybersource_server') == 'test') {
     return 'https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.38.wsdl';
   }
   else {
@@ -418,8 +410,7 @@ function _uc_recurring_cybersource_create_profile($order) {
     $request->paySubscriptionCreateService = $paySubscriptionCreateService;
 
     $purchaseTotals = new stdClass();
-    // TODO This variable was probably removed in Backdrop without replacement.
-    $purchaseTotals->currency = variable_get('uc_cybersource_currency', 'usd');
+    $purchaseTotals->currency = config_get('uc_cybersource.settings', 'uc_cybersource_currency');
     $request->purchaseTotals = $purchaseTotals;
 
     $request->billTo = _uc_recurring_cybersource_billto_obj($order);
@@ -486,8 +477,7 @@ function _uc_recurring_cybersource_card_obj($order) {
   $card->expirationMonth = $order->payment_details['cc_exp_month'];
   $card->expirationYear = $order->payment_details['cc_exp_year'];
   $card->cardType = _uc_cybersource_card_type($order->payment_details['cc_number']);
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_credit_cvv_enabled', TRUE)) {
+  if (config_get('uc_credit.settings', 'uc_credit_cvv_enabled')) {
     $card->cvNumber = $order->payment_details['cc_cvv'];
   }
   return $card;

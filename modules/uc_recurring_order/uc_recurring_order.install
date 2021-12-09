@@ -6,9 +6,6 @@
  *
  */
 
-// TODO The old hook_update_N functions cannot be applied to Backdrop.
-function uc_recurring_order_update_6000() { }
-
 /**
  * Implements hook_update_last_removed().
  */
@@ -27,11 +24,4 @@ function uc_recurring_order_update_1000() {
 
   update_variable_del('uc_recurring_order_interval_options');
   update_variable_del('uc_recurring_order_enabled');
-}
-
-/**
- * Implements hook_install().
- */
-function uc_recurring_order_install() {
-  // Dynamically generated variable data was detected.
 }

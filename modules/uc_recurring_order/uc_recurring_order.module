@@ -262,8 +262,7 @@ function uc_recurring_order_uc_order($op, $order, $arg2) {
     case 'submit':
       $recurring = isset($order->data['recurring_option']) ? $order->data['recurring_option'] : 0;
       $next_renewal = strtotime('+' . $recurring);
-      // TODO This variable was probably removed in Backdrop without replacement.
-      if ($next_renewal > REQUEST_TIME && variable_get('uc_recurring_checkout_process', TRUE)) {
+      if ($next_renewal > REQUEST_TIME && config_get('uc_recurring.settings', 'uc_recurring_checkout_process')) {
         if (uc_recurring_order_process_order($order, $recurring) === FALSE) {
           return array(array('pass' => FALSE, 'message' => t('Your order cannot be completed, because we could not process your recurring payment. Please review your payment details and contact us to complete your order if the problem persists.')));
         }

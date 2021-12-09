@@ -77,8 +77,7 @@ function uc_recurring_hosted_recurring_info() {
     'own handler' => TRUE,
   );
 
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_authnet_arb_mode', 'disabled') != 'disabled') {
+  if (config_get('uc_authorizenet.settings', 'uc_authnet_arb_mode') != 'disabled') {
     $items['authorizenet'] = $items['authorizenet_arb'];
   }
 
@@ -280,8 +279,7 @@ function uc_recurring_hosted_authorizenet_arb_process($order, &$fee) {
   // We can't just call the existing arb function in ubercart as that would try
   // and setup thing that uc_recurring does now for all recurring fees.
   // return uc_authorizenet_arb_create($order, $fee);
-  // TODO This variable was probably removed in Backdrop without replacement.
-  $server = variable_get('uc_authnet_arb_mode', 'disabled');
+  $server = config_get('uc_authorizenet.settings', 'uc_authnet_arb_mode');
 
   // Setup variables for the payment schedule.
   list($length, $unit) = explode(' ', $fee->regular_interval);
@@ -439,8 +437,7 @@ function uc_recurring_hosted_uc_auth_arb_payment($post) {
     uc_recurring_renew($fee);
 
     // Log the ARB payment if enabled.
-    // TODO This variable was probably removed in Backdrop without replacement.
-    if (variable_get('uc_authnet_report_arb_post', FALSE)) {
+    if (config_get('uc_authorizenet.settings', 'uc_authnet_report_arb_post')) {
       watchdog('uc_authorizenet', 'ARB payment reported for order @order_id: <pre>@post</pre>', array('@order_id' => $fee->order_id, '@post' => print_r($post, TRUE)));
     }
   }
@@ -457,8 +454,7 @@ function uc_recurring_hosted_uc_auth_arb_payment($post) {
  *   TRUE if recurring fee was cancelled.
  */
 function uc_recurring_hosted_authorizenet_arb_cancel($order, $fee) {
-  // TODO This variable was probably removed in Backdrop without replacement.
-  $server = variable_get('uc_authnet_arb_mode', 'disabled');
+  $server = config_get('uc_authorizenet.settings', 'uc_authnet_arb_mode');
 
   $order = uc_order_load($order->order_id);
   $subscription_id = end(array_keys($order->data['cc_txns']['references']));
@@ -602,8 +598,8 @@ function uc_recurring_hosted_form_uc_paypal_wps_form_alter(&$form, $form_state) 
     $data['notify_url'] = url('uc_recurring_hosted/paypal/ipn/' . $order->order_id, array('absolute' => TRUE));
 
     $data['cmd'] = '_xclick-subscriptions';
-    // TODO This variable was probably removed in Backdrop without replacement.
-    $data['item_name'] = t('Order @order_id at !store', array('@order_id' => $order->order_id, '!store' => variable_get('uc_store_name', url('<front>', array('absolute' => TRUE)))));
+    $store_name = config_get('uc_store.settings', 'uc_store_name');
+    $data['item_name'] = t('Order @order_id at !store', array('@order_id' => $order->order_id, '!store' => $store_name ? $store_name : url('<front>', array('absolute' => TRUE))));
     // first payment
     list($p, $t) = explode(' ', $recurring_fee['recurring product']->initial_charge);
     $data['a1'] = sprintf("%0.2f", $order->order_total);
@@ -750,12 +746,12 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
   }
   // Build an NVP request.
   // @link https://cms.paypal.com/us/cgi-bin/?&cmd=_render-content&content_ID=developer/e_howto_api_WPRecurringPayments @endlink
-  // TODO This variable was probably removed in Backdrop without replacement.
+  $store_name = config_get('uc_store.settings', 'uc_store_name');
   $nvp_request = array(
     // Set the version required for recurring payments.
     'VERSION' => UC_PAYPAL_RECURRING_API,
     'METHOD' => 'CreateRecurringPaymentsProfile',
-    'DESC' => 'Order ' . $order->order_id . ' at ' . check_plain(variable_get('uc_store_name', 'Ubercart')),
+    'DESC' => 'Order ' . $order->order_id . ' at ' . check_plain($store_name ? $store_name : 'Ubercart'),
     'PROFILESTARTDATE' => $start_date,
     'PROFILEREFERENCE' => $order->order_id,
     'CREDITCARDTYPE' => $cc_type,
@@ -774,8 +770,7 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
     'MAXFAILEDPAYMENTS' => 1,
   );
 
-  // TODO This variable was probably removed in Backdrop without replacement.
-  $nvp_request['CURRENCYCODE'] = variable_get('uc_paypal_wpp_currency', 'USD');
+  $nvp_request['CURRENCYCODE'] = config_get('uc_paypal.settings', 'uc_paypal_wpp_currency');
 
   // Add optional NVP request parameters.
   if (!empty($order->billing_first_name)) {
@@ -823,14 +818,12 @@ function uc_recurring_hosted_paypal_wpp_process($order, &$fee) {
     $nvp_request['TRIALAMT'] = 0;
   }
 
-  // TODO This variable was probably removed in Backdrop without replacement.
-  if (variable_get('uc_credit_cvv_enabled', TRUE)) {
+  if (config_get('uc_credit.settings', 'uc_credit_cvv_enabled')) {
     $nvp_request['CVV2'] = $order->payment_details['cc_cvv'];
   }
 
   // Post the request, and parse the response.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  $nvp_response = uc_paypal_api_request($nvp_request, variable_get('uc_paypal_wpp_server', 'https://api-3t.sandbox.paypal.com/nvp'));
+  $nvp_response = uc_paypal_api_request($nvp_request, config_get('uc_paypal.settings', 'uc_paypal_wpp_server'));
   $types = uc_credit_transaction_types();
 
   // Get the $amount and $data from the fee object.
@@ -958,8 +951,7 @@ function uc_recurring_hosted_paypal_wpp_cancel($fee) {
   );
 
   // Post the request, and parse the response.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  $nvp_response = uc_paypal_api_request($nvp_request, variable_get('uc_paypal_wpp_server', 'https://api-3t.sandbox.paypal.com/nvp'), UC_PAYPAL_RECURRING_API);
+  $nvp_response = uc_paypal_api_request($nvp_request, config_get('uc_paypal.settings', 'uc_paypal_wpp_server'), UC_PAYPAL_RECURRING_API);
 
   if ($nvp_response['ACK'] != 'Success' && $nvp_response['ACK'] != 'SuccessWithWarning') {
     watchdog('uc_recurring_hosted', 'Failed to cancel recurring @id', array('@id' => $fee->rfid), WATCHDOG_ERROR);
@@ -992,8 +984,7 @@ function uc_recurring_hosted_paypal_wpp_get_profile($rfid) {
   );
 
   // Post the request, and parse the response.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  $nvp_response = uc_paypal_api_request($nvp_request, variable_get('uc_paypal_wpp_server', 'https://api-3t.sandbox.paypal.com/nvp'), UC_PAYPAL_RECURRING_API);
+  $nvp_response = uc_paypal_api_request($nvp_request, config_get('uc_paypal.settings', 'uc_paypal_wpp_server'), UC_PAYPAL_RECURRING_API);
 
   if ($nvp_response['ACK'] != 'Success' && $nvp_response['ACK'] != 'SuccessWithWarning') {
     return FALSE;
@@ -1238,8 +1229,7 @@ function uc_recurring_hosted_paypal_wpp_update($order, $fee, $updates = array())
   ) + $updates;
 
   // Post the request, and parse the response.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  $nvp_response = uc_paypal_api_request($nvp_request, variable_get('uc_paypal_wpp_server', 'https://api-3t.sandbox.paypal.com/nvp'), UC_PAYPAL_RECURRING_API);
+  $nvp_response = uc_paypal_api_request($nvp_request, config_get('uc_paypal.settings', 'uc_paypal_wpp_server'), UC_PAYPAL_RECURRING_API);
 
   if ($nvp_response['ACK'] != 'Success' && $nvp_response['ACK'] != 'SuccessWithWarning') {
     watchdog('uc_recurring', 'Failed to update recurring profile @id', array('@id' => $profile->subscription_id), WATCHDOG_ERROR);

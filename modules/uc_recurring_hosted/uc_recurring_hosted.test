@@ -44,9 +44,9 @@ class ucRecurringPaypalWPSTestCase extends ucRecurringTestCase {
     $recurring_feature = $this->createRecurringFeature($product->nid, array('unlimited_intervals' => TRUE, 'fee_amount' => 50));
     $this->drupalLogout();
 
-    variable_set('uc_paypal_wps_server', url('uc_recurring_hosted/paypal/cgi-bin/webscr', array('absolute' => TRUE)));
-    variable_set('uc_paypal_wps_checkout_button', t('Submit order'));
-    variable_set('uc_paypal_wps_debug_ipn', TRUE);
+    config_set('uc_paypal.settings', 'uc_paypal_wps_server', url('uc_recurring_hosted/paypal/cgi-bin/webscr', array('absolute' => TRUE)));
+    config_set('uc_paypal.settings', 'uc_paypal_wps_checkout_button', t('Submit order'));
+    config_set('uc_paypal.settings', 'uc_paypal_wps_debug_ipn', TRUE);
 
     $this->drupalPost('node/' . $product->nid, array(), t('Add to cart'));
     $this->assertRaw($product->title, t('The product name has been displayed on the cart page.'));

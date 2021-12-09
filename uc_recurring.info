@@ -4,5 +4,3 @@ dependencies[] = uc_cart
 package = Ubercart - recurring
 backdrop = 1.x
 type = module
-php = 5.0
-

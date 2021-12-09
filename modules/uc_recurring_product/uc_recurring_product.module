@@ -70,18 +70,15 @@ function uc_recurring_product_feature_form($form, &$form_state, $node, $feature)
     '#type' => 'hidden',
     '#value' => $node->sell_price,
   );
-  // TODO This variable was probably removed in Backdrop without replacement.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  // TODO This variable was probably removed in Backdrop without replacement.
-  // TODO This variable was probably removed in Backdrop without replacement.
+  $store_config = config('uc_store.settings');
   $form['fee']['fee_amount'] = array(
     '#type' => 'textfield',
     '#title' => t('Recurring fee amount'),
     '#description' => t('Charge this amount each billing period.<br />The product price is still charged at checkout.'),
     '#default_value' => empty($product->fee_amount) ? $node->sell_price : $product->fee_amount,
     '#size' => 16,
-    '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),
-    '#field_suffix' => variable_get('uc_sign_after_amount', FALSE)?variable_get('uc_currency_sign', '$') : '',
+    '#field_prefix' => $store_config->get('uc_sign_after_amount') ? '' : $store_config->get('uc_currency_sign'),
+    '#field_suffix' => $store_config->get('uc_sign_after_amount') ? $store_config->get('uc_currency_sign') : '',
     '#attributes' => (isset($product->fee_amount) && $product->fee_amount == 0)?array('disabled' => 'disabled') : array(),
   );
 
@@ -400,14 +397,12 @@ function uc_recurring_product_form_uc_cart_checkout_form_alter(&$form, $form_sta
     }
 
     // If configured, display a message about the recurring fees.
-    // TODO This variable was probably removed in Backdrop without replacement.
-    if ($message = variable_get('uc_recurring_checkout_message', '')) {
+    if ($message = config_get('uc_recurring.settings', 'uc_recurring_checkout_message')) {
       backdrop_set_message(check_markup($message));
     }
 
     // Remove invalid payment methods from the payment pane.
-    // TODO This variable was probably removed in Backdrop without replacement.
-    $valid = variable_get('uc_recurring_payment_methods', array());
+    $valid = config_get('uc_recurring.settings', 'uc_recurring_payment_methods');
     if (!empty($form['panes']['payment']['payment_method']['#options'])) {
       foreach (array_keys($form['panes']['payment']['payment_method']['#options']) as $key) {
         if ((isset($valid[$key]) && $valid[$key] === 0) || !uc_recurring_payment_method_supported($key)) {
@@ -462,8 +457,7 @@ function uc_recurring_product_uc_order($op, $order, $arg2) {
   switch ($op) {
     // TODO: Allow admin to create a recurring order from "create order" page.
     case 'submit':
-      // TODO This variable was probably removed in Backdrop without replacement.
-      if (variable_get('uc_recurring_checkout_process', TRUE)) {
+      if (config_get('uc_recurring.settings', 'uc_recurring_checkout_process')) {
         //reload order to capture uid in case checkout was anonymous
         $order = uc_order_load($order->order_id);
         if (uc_recurring_product_process_order($order) === FALSE) {
