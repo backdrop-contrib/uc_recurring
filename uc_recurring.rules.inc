@@ -213,7 +213,7 @@ function uc_recurring_renewal_email($order, $recurring_fee, $from, $addresses, $
     'format' => $format,
   );
 
-  $account = uc_order_user_load($order);
+  $account = user_load($order->uid);
 
   // Token replacements for the subject and body
   $settings['replacements'] = array(
