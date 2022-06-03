@@ -1115,8 +1115,8 @@ function theme_uc_recurring_admin_table($variables) {
       db_delete('uc_recurring_users')
         ->condition('rfid', $fee->rfid)
         ->execute();
-      db_delete('original_order_id')
-        ->condition('rfid', $fee->order_id)
+      db_delete('uc_recurring_orders')
+        ->condition('original_order_id', $fee->order_id)
         ->execute();
       backdrop_set_message(t("An orphaned recurring fee with ID @rfid has been deleted.", array('@rfid' => $fee->rfid)), 'status');
     }
