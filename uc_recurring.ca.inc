@@ -351,7 +351,7 @@ function uc_recurring_condition_order_has_expired($recurring_fee, $settings) {
  * @see uc_recurring_action_renewal_email_form()
  */
 function uc_recurring_action_renewal_email($order, $recurring_fee, $settings) {
-  $account = uc_order_user_load($order);
+  $account = user_load($order->uid);
 
   // Token replacements for the subject and body
   $settings['replacements'] = array(
