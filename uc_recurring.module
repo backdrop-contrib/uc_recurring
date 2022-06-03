@@ -1108,6 +1108,20 @@ function theme_uc_recurring_admin_table($variables) {
   $recurring_states = uc_recurring_fee_status_label();
   $rows = array();
   foreach ($fees as $fee) {
+  
+    // Clean up orphaned recurring orders.
+    $order = uc_order_load($fee->order_id);
+    if (empty($order)) {
+      db_delete('uc_recurring_users')
+        ->condition('rfid', $fee->rfid)
+        ->execute();
+      db_delete('uc_recurring_orders')
+        ->condition('original_order_id', $fee->order_id)
+        ->execute();
+      backdrop_set_message(t("An orphaned recurring fee with ID @rfid has been deleted.", array('@rfid' => $fee->rfid)), 'status');
+    }
+    
+    // Continue for the rest orders.
     if ($fee->remaining_intervals < 0) {
       $fee_remaining = t('Until cancelled');
     }
