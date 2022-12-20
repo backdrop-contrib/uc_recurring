@@ -12,7 +12,8 @@ function uc_recurring_admin($filter = NULL, $id = NULL) {
   $item = menu_get_item();
 
   // Add the filter form to the top of the table.
-  $output = render(backdrop_get_form('uc_recurring_admin_filter_form', $item));
+  $output = backdrop_get_form('uc_recurring_admin_filter_form', $item);
+  $output = render($output);
 
   // Build an array of fees to include in the admin table.
   $fees = array();
