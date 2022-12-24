@@ -66,10 +66,7 @@ function uc_recurring_token_info() {
  * Implements hook_tokens().
  */
 function uc_recurring_tokens($type, $tokens, $data = array(), $options = array()) {
-  $language_code = NULL;
-  if (isset($options['language'])) {
-    $language_code = $options['language']->language;
-  }
+
   $sanitize = !empty($options['sanitize']);
 
   $replacements = array();
